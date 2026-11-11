@@ -260,6 +260,19 @@
     }
 }
 
+- (BOOL) drawTextFieldCell: (NSTextFieldCell*)cell
+                   frame: (NSRect)frame
+                    view: (NSView*)view
+{
+  return NO;
+}
+
+- (NSRect) textFieldContentRectForCell: (NSTextFieldCell*)cell
+                               frame: (NSRect)frame
+{
+  return NSZeroRect;
+}
+
 - (GSThemeMargins) buttonMarginsForCell: (NSCell*)cell
 				  style: (int)style 
 				  state: (GSThemeControlState)state

@@ -257,6 +257,7 @@
 @class NSTableHeaderCell;
 @class NSTableView;
 @class NSTabViewItem;
+@class NSTextFieldCell;
 @class NSPathControl;
 @class NSPathComponentCell;
 @class GSDrawTiles;
@@ -820,6 +821,24 @@ APPKIT_EXPORT_CLASS
 	       view: (NSView*)view
 	      style: (int)style
 	      state: (GSThemeControlState)state;
+
+/**
+ * Optionally draw a text field's frame and background. Return YES when handled,
+ * or NO to preserve the standard cell drawing. The text and field editor are
+ * still drawn by AppKit. This permits themes to use a platform entry renderer
+ * without replacing NSTextFieldCell methods.
+ */
+- (BOOL) drawTextFieldCell: (NSTextFieldCell*)cell
+                   frame: (NSRect)frame
+                    view: (NSView*)view;
+
+/**
+ * Optional native text-field content bounds. Return NSZeroRect to preserve
+ * AppKit's normal padding and field editor background. A nonempty result
+ * means the theme paints the entire background, including behind the editor.
+ */
+- (NSRect) textFieldContentRectForCell: (NSTextFieldCell*)cell
+                               frame: (NSRect)frame;
 
 /**
  * Amount by which the button is inset by the border.
