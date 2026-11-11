@@ -43,6 +43,7 @@
 #import "AppKit/NSText.h"
 
 #import "GSBindingHelpers.h"
+#import "GNUstepGUI/GSTheme.h"
 
 @implementation NSTextFieldCell
 
@@ -197,10 +198,21 @@
 - (NSText *) setUpFieldEditorAttributes: (NSText *)textObject
 {
   textObject = [super setUpFieldEditorAttributes: textObject];
-  [textObject setDrawsBackground: _textfieldcell_draws_background];
+  NSRect nativeRect = [[GSTheme theme] textFieldContentRectForCell: self
+                                                          frame: NSMakeRect(0, 0, 100, 100)];
+  [textObject setDrawsBackground: NSIsEmptyRect(nativeRect)
+    ? _textfieldcell_draws_background : NO];
   [textObject setBackgroundColor: _background_color];
   [textObject setTextColor: _text_color];
   return textObject;
+}
+
+- (NSRect) titleRectForBounds: (NSRect)frame
+{
+  NSRect nativeRect = [[GSTheme theme] textFieldContentRectForCell: self frame: frame];
+  if (!NSIsEmptyRect(nativeRect))
+    return nativeRect;
+  return [super titleRectForBounds: frame];
 }
 
 - (void) _drawBackgroundWithFrame: (NSRect)cellFrame
@@ -223,6 +235,9 @@
 - (void) _drawBorderAndBackgroundWithFrame: (NSRect)cellFrame
 				    inView: (NSView*)controlView
 {
+  if ([[GSTheme theme] drawTextFieldCell: self frame: cellFrame view: controlView])
+    return;
+
   // FIXME: Should use the bezel style if set.
   [super _drawBorderAndBackgroundWithFrame: cellFrame inView: controlView];
   [self _drawBackgroundWithFrame: cellFrame inView: controlView];
@@ -292,6 +307,10 @@
 
 - (BOOL) isOpaque
 {
+  // Native entry frames may have transparent rounded corners.
+  if (!NSIsEmptyRect([[GSTheme theme] textFieldContentRectForCell: self
+                                                          frame: NSMakeRect(0, 0, 100, 100)]))
+    return NO;
   if (_textfieldcell_draws_background == NO
       || _background_color == nil
       || [_background_color alphaComponent] < 1.0)

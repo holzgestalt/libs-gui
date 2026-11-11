@@ -556,6 +556,9 @@ static Class textFieldCellClass;
     {
       [_cell endEditing: _text_object];
       _text_object = nil;
+      // Removing the editor invalidates only its content area. Native themes
+      // can also draw focus around the field's border, so repaint all of it.
+      [self setNeedsDisplay: YES];
       return YES;
     }
   else 

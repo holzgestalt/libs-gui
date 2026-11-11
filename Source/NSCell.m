@@ -2295,6 +2295,8 @@ static NSColor *dtxtCol;
       NSClipView *cv;
 
       cv = [[NSClipView alloc] initWithFrame: titleRect];
+      // A transparent field editor must not acquire an opaque clip background.
+      [cv setDrawsBackground: [textObject drawsBackground]];
       [cv setDocumentView: textObject];
       [controlView addSubview: cv];
       RELEASE(cv);
