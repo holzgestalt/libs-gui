@@ -67,7 +67,9 @@
 #import "AppKit/NSTableHeaderView.h"
 #import "AppKit/NSTableView.h"
 #import "AppKit/NSTabView.h"
+#import "AppKit/NSTextFieldCell.h"
 #import "AppKit/NSToolbarItem.h"
+#import "AppKit/NSToolbar.h"
 #import "AppKit/NSView.h"
 #import "GSCodingFlags.h"
 
@@ -452,6 +454,8 @@ static NSArray      *XmlBoolDefaultYes  = nil;
                @"decodeDividerStyleForElement:", @"NSDividerStyle",
                @"decodeToolbarIdentifiedItemsForElement:", @"NSToolbarIBIdentifiedItems",
                @"decodeToolbarImageForElement:", @"NSToolbarItemImage",
+               @"decodeToolbarDisplayModeForElement:", @"NSToolbarDisplayMode",
+               @"decodeToolbarSizeModeForElement:", @"NSToolbarSizeMode",
                @"decodeControlContentsForElement:", @"NSControlContents",
                @"decodePathStyle:", @"NSPathStyle",
                @"decodeFirstAttribute:", @"NSFirstAttribute",
@@ -2873,6 +2877,39 @@ didStartElement: (NSString*)elementName
   return [NSNumber numberWithBool: value];
 }
 
+- (id) decodeToolbarDisplayModeForElement: (GSXibElement *)element
+{
+  NSString *mode = [element attributeForKey: @"displayMode"];
+  NSToolbarDisplayMode value = NSToolbarDisplayModeDefault;
+
+  if ([mode isEqualToString: @"iconAndLabel"])
+    value = NSToolbarDisplayModeIconAndLabel;
+  else if ([mode isEqualToString: @"iconOnly"])
+    value = NSToolbarDisplayModeIconOnly;
+  else if ([mode isEqualToString: @"labelOnly"])
+    value = NSToolbarDisplayModeLabelOnly;
+  else if ([mode isEqualToString: @"1"] || [mode isEqualToString: @"2"]
+           || [mode isEqualToString: @"3"])
+    value = [mode integerValue];
+
+  return [NSNumber numberWithInteger: value];
+}
+
+- (id) decodeToolbarSizeModeForElement: (GSXibElement *)element
+{
+  NSString *mode = [element attributeForKey: @"sizeMode"];
+  NSToolbarSizeMode value = NSToolbarSizeModeDefault;
+
+  if ([mode isEqualToString: @"regular"])
+    value = NSToolbarSizeModeRegular;
+  else if ([mode isEqualToString: @"small"])
+    value = NSToolbarSizeModeSmall;
+  else if ([mode isEqualToString: @"1"] || [mode isEqualToString: @"2"])
+    value = [mode integerValue];
+
+  return [NSNumber numberWithInteger: value];
+}
+
 - (id) decodeToolbarIdentifiedItemsForElement: (GSXibElement*)element
 {
   NSArray *allowedItems = [self decodeObjectForKey: @"allowedToolbarItems"];
@@ -3478,6 +3515,16 @@ didStartElement: (NSString*)elementName
 {
   BOOL flag = NO;
 
+  // Interface Builder omits drawsBackground for standard bezeled entries.
+  // An explicit NO still has to retain transparent/custom field behavior.
+  if ([key isEqualToString: @"NSDrawsBackground"]
+      && ![super containsValueForKey: key]
+      && [currentElement attributeForKey: @"drawsBackground"] == nil
+      && [NSClassFromString([currentElement attributeForKey: @"class"])
+           isSubclassOfClass: [NSTextFieldCell class]]
+      && [[currentElement attributeForKey: @"borderStyle"] isEqualToString: @"bezel"])
+    return YES;
+
   if ([super containsValueForKey: key])
     {
       flag = [super decodeBoolForKey: key];
@@ -3644,7 +3691,14 @@ didStartElement: (NSString*)elementName
   if (hasValue == NO)
     {
       // Try reinterpreting the request...
-      if ([@"IBIsSystemFont" isEqualToString: key])
+      if ([key isEqualToString: @"NSDrawsBackground"]
+          && [NSClassFromString([currentElement attributeForKey: @"class"])
+               isSubclassOfClass: [NSTextFieldCell class]]
+          && [[currentElement attributeForKey: @"borderStyle"] isEqualToString: @"bezel"])
+        {
+          hasValue = YES;
+        }
+      else if ([@"IBIsSystemFont" isEqualToString: key])
         {
           // A font element left on the appearance font carries no metaFont,
           // and the appearance font is the system font.
