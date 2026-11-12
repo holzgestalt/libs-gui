@@ -236,6 +236,7 @@ NSRulerView.m \
 NSRunningApplication.m \
 NSSavePanel.m \
 NSSearchField.m \
+NSSearchToolbarItem.m \
 NSSearchFieldCell.m \
 NSSegmentedCell.m \
 NSSegmentedControl.m \
@@ -566,6 +567,7 @@ NSScrubber.h \
 NSScrubberItemView.h \
 NSScrubberLayout.h \
 NSSearchField.h \
+NSSearchToolbarItem.h \
 NSSearchFieldCell.h \
 NSSecureTextField.h \
 NSSegmentedCell.h \
