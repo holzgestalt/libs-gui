@@ -266,6 +266,7 @@ static NSArray      *XmlBoolDefaultYes  = nil;
           // method for cross referencing...
           XmlKeyMapTable = [NSDictionary dictionaryWithObjectsAndKeys:
                                            @"timeIntervalSinceReferenceDate", @"NS.time",
+                                           @"identifier", @"NSUserInterfaceItemIdentifier",
                                            @"isSeparatorItem", @"NSIsSeparator",
                                            @"customClass", @"NSClassName",
                                            @"catalog", @"NSCatalogName",
