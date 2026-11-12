@@ -435,6 +435,17 @@ static NSNotificationCenter *nc;
     return NSNaturalTextAlignment;
 }
 
+- (NSControlSize) controlSize
+{
+  return [_cell controlSize];
+}
+
+- (void) setControlSize: (NSControlSize)controlSize
+{
+  [_cell setControlSize: controlSize];
+  [self setNeedsDisplay: YES];
+}
+
 /**<p>Returns the font of the text in the NSControl's cell. Returns nil if
    the cell does not exists.</p><p>See Also: -setFont: [NSCell-font]</p>
  */

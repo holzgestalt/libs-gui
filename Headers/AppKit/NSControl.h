@@ -34,6 +34,7 @@
 // for NSWritingDirection
 #import <AppKit/NSParagraphStyle.h>
 #import <AppKit/NSView.h>
+#import <AppKit/NSColor.h>
 
 @class NSString;
 @class NSNotification;
@@ -273,6 +274,10 @@ APPKIT_EXPORT_CLASS
  * Returns: The NSFont object used for displaying text
  */
 - (NSFont *)font;
+
+/** The cell's size variant. Changing it preserves the font and frame. */
+- (NSControlSize)controlSize;
+- (void)setControlSize:(NSControlSize)controlSize;
 
 /**
  * Sets the text alignment used by the control.

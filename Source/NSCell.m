@@ -1943,6 +1943,11 @@ static NSColor *dtxtCol;
     {
       borderSize.height += 1;
       borderSize.width  += 3;
+      if ([self controlSize] == NSControlSizeLarge)
+        {
+          borderSize.width += 3;
+          borderSize.height += 4;
+        }
     }
 
   // Get Content Size
@@ -2025,6 +2030,15 @@ static NSColor *dtxtCol;
     aType = NSNoBorder;
 
   borderSize = [[GSTheme theme] sizeForBorderType: aType];
+  if ((_cell.is_bordered || _cell.is_bezeled)
+      && [self controlSize] == NSControlSizeLarge)
+    {
+      NSSize preferred = [self cellSize];
+      if (NSWidth(theRect) >= preferred.width)
+        borderSize.width += 3;
+      if (NSHeight(theRect) >= preferred.height)
+        borderSize.height += 4;
+    }
   return NSInsetRect(theRect, borderSize.width, borderSize.height);
 }
 

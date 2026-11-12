@@ -42,6 +42,7 @@
 
 #import "AppKit/NSGraphicsContext.h"
 #import "AppKit/NSFont.h"
+#import "AppKit/NSCell.h"
 #import "AppKit/NSFontDescriptor.h"
 #import "AppKit/NSFontManager.h"
 #import "AppKit/NSView.h"
@@ -721,6 +722,12 @@ static void setNSFont(NSString *key, NSFont *font)
             }
           
           return fontSize;
+        }
+      case NSControlSizeLarge:
+        {
+          CGFloat fontSize = [defaults floatForKey: @"NSLargeFontSize"];
+
+          return fontSize > 0 ? fontSize : [self systemFontSize] + 2;
         }
       case NSSmallControlSize:
         return [self smallSystemFontSize];

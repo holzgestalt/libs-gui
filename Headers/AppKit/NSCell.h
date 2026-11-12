@@ -187,7 +187,8 @@ typedef NSInteger NSBackgroundStyle;
 enum __NSControlSize {
   NSControlSizeRegular,
   NSControlSizeSmall,
-  NSControlSizeMini
+  NSControlSizeMini,
+  NSControlSizeLarge = 3
 };
 #endif
 

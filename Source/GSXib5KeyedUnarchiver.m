@@ -1915,6 +1915,8 @@ didStartElement: (NSString*)elementName
     mask |= NSControlSizeMini << 26;
   else if ([@"regular" isEqualToString: controlSize])
     mask |= NSControlSizeRegular << 26;
+  else if ([@"large" isEqualToString: controlSize])
+    mask |= NSControlSizeLarge << 26;
   else
     NSWarnMLog(@"unknown scroller control size: %@", controlSize);
 
@@ -2149,6 +2151,8 @@ didStartElement: (NSString*)elementName
     mask.flags.controlSize = NSControlSizeMini;
   else if ([@"regular" isEqualToString: controlSize])
     mask.flags.controlSize = NSControlSizeRegular;
+  else if ([@"large" isEqualToString: controlSize])
+    mask.flags.controlSize = NSControlSizeLarge;
   else if (controlSize)
     NSWarnMLog(@"unknown control size: %@", controlSize);
 
@@ -2491,6 +2495,8 @@ didStartElement: (NSString*)elementName
         mask.flags.controlSize = NSMiniControlSize;
       else if ([@"regular" isEqualToString: controlSize])
         mask.flags.controlSize = NSRegularControlSize;
+      else if ([@"large" isEqualToString: controlSize])
+        mask.flags.controlSize = NSControlSizeLarge;
       else if (controlSize)
         NSWarnMLog(@"unknown control size: %@", controlSize);
 
