@@ -1,3 +1,4 @@
+#import <GNUstepGUI/GSGNUstepTheme.h>
 /** <title>GSThemeDrawing</title>
 
    <abstract>The theme methods for drawing controls</abstract>
@@ -98,7 +99,7 @@
                      inFrame: (NSRect)aRect;
 @end
 
-@implementation	GSTheme (Drawing)
+@implementation	GSGNUstepTheme (Drawing)
 - (void) setKeyEquivalent: (NSString *)key 
             forButtonCell: (NSButtonCell *)cell
 {

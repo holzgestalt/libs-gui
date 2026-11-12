@@ -476,7 +476,9 @@ APPKIT_EXPORT	NSString	*GSThemeWillDeactivateNotification;
   to establish the correct system color list when a theme is activated.
   </p>
   <p>
-  The class provides a mechanism for automatic loading of theme bundles
+  The following historical bundle documentation does not apply to this build.
+  This build selects a linked provider with GNUSTEP_BUILTIN_THEME.
+  Previously the class provided automatic loading of theme bundles
   consisting of resources used to define how drawing is done, plus an
   optional binary subclass of this class (to replace/extend the drawing
   methods this class provides).
@@ -495,35 +497,18 @@ APPKIT_EXPORT_CLASS
   void		*_reserved;
 }
 
-/**
- * Loads a theme from a theme bundle of the specified name, which may be
- * either a full path name of the theme bundle, or a simple theme name
- * (in which case the standard directories are searched for it) or nil
- * (in which case the default GNUstep theme is returned).<br />
- * Returns the loaded theme but does not make it the current theme,
- * to do that you will need to call the +setTheme: method.
+/** Returns the compiled provider for nil, an empty name or its own name.
+ * Other names and bundle paths return nil; no code is loaded at runtime.
  */
 + (GSTheme*) loadThemeNamed: (NSString*)themeName;
 
-/**
- * Creates and displays a panel allowing selection of different themes
- * and display of the current theme inspector.
- */
+/** Retained for source compatibility; does nothing. */
 + (void) orderFrontSharedThemePanel: (id)sender;
 
-/**
- * Set the currently active theme to be the instance specified.<br />
- * You do not normally need to call this method as it is called
- * automatically when the user default which specifies the current
- * theme (GSTheme) is updated.
- */
+/** Retained for source compatibility; the compiled provider cannot change. */
 + (void) setTheme: (GSTheme*)theme;
 
-/**
- * Returns the currently active theme instance.  This is the value most
- * recently set using +setTheme: or (if none has been set) is a default
- * instance of the base class.
- */
+/** Returns the single provider selected when AppKit was built. */
 + (GSTheme*) theme;
 
 /**

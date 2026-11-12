@@ -1,3 +1,4 @@
+#import <GNUstepGUI/GSGNUstepTheme.h>
 /** <title>GSThemeTools</title>
 
    <abstract>Useful/configurable drawing functions</abstract>
@@ -37,7 +38,7 @@
 #include <float.h>
 
 
-@implementation	GSTheme (MidLevelDrawing)
+@implementation	GSGNUstepTheme (MidLevelDrawing)
 
 - (NSRect) drawButton: (NSRect)border withClip: (NSRect)clip
 {
@@ -486,7 +487,7 @@
 
 
 
-@implementation	GSTheme (LowLevelDrawing)
+@implementation	GSGNUstepTheme (LowLevelDrawing)
 
 - (void) fillHorizontalRect: (NSRect)rect
 		  withImage: (NSImage*)image

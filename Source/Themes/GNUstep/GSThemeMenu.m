@@ -1,3 +1,4 @@
+#import <GNUstepGUI/GSGNUstepTheme.h>
 /** <title>GSThemePanel</title>
 
    <abstract>Theme management utility</abstract>
@@ -67,7 +68,7 @@
 
 @end
 
-@implementation	GSTheme (Menu)
+@implementation	GSGNUstepTheme (Menu)
 - (void) setMenu: (NSMenu *)menu
        forWindow: (NSWindow *)window
 {

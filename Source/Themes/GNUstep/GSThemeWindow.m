@@ -1,3 +1,4 @@
+#import <GNUstepGUI/GSGNUstepTheme.h>
 /** <title>GSThemeWindow</title>
 
    <abstract>The theme methods for window specific functions</abstract>
@@ -35,7 +36,7 @@
 #import "GSThemePrivate.h"
 #import "GNUstepGUI/GSDisplayServer.h"
 
-@implementation GSTheme (NSWindow)
+@implementation GSGNUstepTheme (NSWindow)
 - (NSButton *) standardWindowButton: (NSWindowButton)button
 		       forStyleMask: (NSUInteger) mask
 {

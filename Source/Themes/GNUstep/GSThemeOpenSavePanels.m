@@ -1,3 +1,4 @@
+#import <GNUstepGUI/GSGNUstepTheme.h>
 /** <title>GSThemeOpenSavePanels</title>
 
    <abstract>Methods for themes using open and save panels.</abstract>
@@ -30,7 +31,7 @@
 #import "AppKit/NSSavePanel.h"
 #import "GNUstepGUI/GSTheme.h"
 
-@implementation GSTheme (OpenSavePanels)
+@implementation GSGNUstepTheme (OpenSavePanels)
 /**
  * This method returns the open panel class needed by the
  * native environment.

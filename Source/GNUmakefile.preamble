@@ -82,3 +82,25 @@ libgnustep-gui_LIBRARIES_DEPEND_UPON = -l$(FOUNDATION_LIBRARY_NAME) $(ADDITIONAL
 
 # Keep the generic variable in sync for compatibility with older make setups.
 LIBRARIES_DEPEND_UPON = $(libgnustep-gui_LIBRARIES_DEPEND_UPON)
+
+# Select the provider when compiling AppKit. No theme bundles are loaded.
+GNUSTEP_BUILTIN_THEME ?= GNUstep
+ADDITIONAL_INCLUDE_DIRS += -I.
+ifeq ($(GNUSTEP_BUILTIN_THEME),GNUstep)
+GS_BUILTIN_CLASS = GSGNUstepTheme
+GS_STATIC_GTK4 = 0
+else ifeq ($(GNUSTEP_BUILTIN_THEME),GTK4Native)
+GTK4_NATIVE_DIR ?= $(abspath ../../../native/GTK4Native)
+libgnustep-gui_OBJC_FILES += $(GTK4_NATIVE_DIR)/GTK4NativeTheme.m $(GTK4_NATIVE_DIR)/GTK4NativeMenu.m $(GTK4_NATIVE_DIR)/GTK4NativeFilePanel.m
+libgnustep-gui_C_FILES += $(GTK4_NATIVE_DIR)/GTK4Renderer.c
+GS_BUILTIN_CLASS = GTK4NativeTheme
+GS_STATIC_GTK4 = 1
+ADDITIONAL_OBJCFLAGS += $(shell pkg-config --cflags gtk4)
+ADDITIONAL_CFLAGS += $(shell pkg-config --cflags gtk4)
+libgnustep-gui_LIBRARIES_DEPEND_UPON += $(shell pkg-config --libs gtk4-x11 xext)
+else
+$(error Unsupported GNUSTEP_BUILTIN_THEME: $(GNUSTEP_BUILTIN_THEME))
+endif
+
+# Refresh the compiler dependency only when the selected provider changes.
+GS_THEME_SELECTION := $(shell printf '\043define GS_BUILTIN_THEME_CLASS $(GS_BUILTIN_CLASS)\n\043define GS_STATIC_GTK4 $(GS_STATIC_GTK4)\n' > GSBuiltinThemeSelection.h.tmp; cmp -s GSBuiltinThemeSelection.h.tmp GSBuiltinThemeSelection.h || cp GSBuiltinThemeSelection.h.tmp GSBuiltinThemeSelection.h; rm -f GSBuiltinThemeSelection.h.tmp)
