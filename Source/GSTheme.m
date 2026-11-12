@@ -347,6 +347,24 @@ GSStringFromImageFrameStyle(NSImageFrameStyle type)
 @end
 
 @implementation GSTheme
+- (BOOL) usesIndividualDocumentSaveAlerts { return NO; }
+- (BOOL) runNativeDocumentSaveAlertWithTitle: (NSString *)title
+                                  message: (NSString *)message
+                                  buttons: (NSArray *)buttons
+                                   result: (NSInteger *)result
+{
+  return NO;
+}
+- (BOOL) runNativeAlertWithTitle: (NSString *)title
+                       message: (NSString *)message
+                       buttons: (NSArray *)buttons
+                 defaultButton: (NSInteger)defaultButton
+                  cancelButton: (NSInteger)cancelButton
+                        result: (NSInteger *)result
+{
+  return NO;
+}
+
 
 static GSTheme			*defaultTheme = nil;
 static GSTheme			*theTheme = nil;

@@ -539,3 +539,8 @@ add comments above this one
 "Hide Toolbar" = "Werkzeugleiste ausblenden";
 /* File: ../Source/NSWindow.m:5641 */
 "Show Toolbar" = "Werkzeugleiste anzeigen";
+
+/* Native document-save confirmation. */
+"Save Changes?" = "\U00c4nderungen speichern?";
+"Changes to “%@” will be permanently lost if you don't save them." = "Die \U00c4nderungen an \U201e%@\U201c gehen unwiderruflich verloren, wenn Sie sie nicht speichern.";
+"Discard" = "Verwerfen";

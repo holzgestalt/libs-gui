@@ -1635,6 +1635,25 @@ withRepeatedImage: (NSImage*)image
 	 forMenu: (NSMenu *) menu;
 @end 
 
+@interface GSTheme (NativeAlerts)
+/** Opt in to reviewing dirty documents individually when quitting. */
+- (BOOL) usesIndividualDocumentSaveAlerts;
+/** Standard document save prompt. Buttons are Save, Cancel, Discard; result
+ * uses NSAlertDefault/Alternate/OtherReturn respectively. Return NO to fall back. */
+- (BOOL) runNativeDocumentSaveAlertWithTitle: (NSString *)title
+                                  message: (NSString *)message
+                                  buttons: (NSArray *)buttons
+                                   result: (NSInteger *)result;
+/** Optional modal alert provider. Return NO to use AppKit. On YES, result is
+ * a zero-based button index. Dismissal must select cancelButton. */
+- (BOOL) runNativeAlertWithTitle: (NSString *)title
+                       message: (NSString *)message
+                       buttons: (NSArray *)buttons
+                 defaultButton: (NSInteger)defaultButton
+                  cancelButton: (NSInteger)cancelButton
+                        result: (NSInteger *)result;
+@end
+
 @interface GSTheme (OpenSavePanels)
 /**
  * This method returns the open panel class needed by the
