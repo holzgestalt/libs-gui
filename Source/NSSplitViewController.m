@@ -107,9 +107,18 @@ const CGFloat NSSplitViewControllerAutomaticDimension = -FLT_MAX;
 
 - (void) setSplitViewItems: (NSArray *)items
 {
-  NSMutableArray *mutableItems = [items mutableCopy];
-  ASSIGN(_splitViewItems, mutableItems);
-  RELEASE(mutableItems);
+  NSArray *newItems = [items copy];
+  NSArray *oldItems = [_splitViewItems copy];
+  NSEnumerator *enumerator = [oldItems objectEnumerator];
+  NSSplitViewItem *item;
+
+  while ((item = [enumerator nextObject]) != nil)
+    [self removeSplitViewItem: item];
+  enumerator = [newItems objectEnumerator];
+  while ((item = [enumerator nextObject]) != nil)
+    [self addSplitViewItem: item];
+  RELEASE(oldItems);
+  RELEASE(newItems);
 }
 
 - (void) addSplitViewItem: (NSSplitViewItem *)item
