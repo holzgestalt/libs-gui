@@ -2789,7 +2789,7 @@ static SEL getSel;
 - (id) initWithCoder: (NSCoder*)aDecoder
 {
   Class class;
-  id cell;
+  NSCell *cell;
   int rows = 0, columns = 0;
   NSArray *array;
   NSInteger i = 0, count = 0;
