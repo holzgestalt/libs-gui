@@ -1497,6 +1497,13 @@
       border = [[GSTheme theme] buttonMarginsForCell: self
 					       style: _bezel_style 
 					       state: buttonState];
+      if ([self controlSize] == NSControlSizeLarge)
+        {
+          border.left += 3;
+          border.right += 3;
+          border.top += 4;
+          border.bottom += 4;
+        }
     }
   else
     {
@@ -1567,6 +1574,22 @@
       border = [[GSTheme theme] buttonMarginsForCell: self
 					       style: _bezel_style 
 					       state: buttonState];
+      if ([self controlSize] == NSControlSizeLarge)
+        {
+          /* Keep fixed-size XIB frames usable when they cannot accommodate
+             the preferred large margins. */
+          NSSize preferred = [self cellSize];
+          if (NSWidth(theRect) >= preferred.width)
+            {
+              border.left += 3;
+              border.right += 3;
+            }
+          if (NSHeight(theRect) >= preferred.height)
+            {
+              border.top += 4;
+              border.bottom += 4;
+            }
+        }
 
       interiorFrame = theRect;
       interiorFrame.origin.x += border.left;

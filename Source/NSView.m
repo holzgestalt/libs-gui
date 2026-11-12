@@ -4801,6 +4801,7 @@ static NSView* findByTag(NSView *view, NSInteger aTag, NSUInteger *level)
 	      forKey: @"NSPreviousKeyView"];
       [aCoder encodeObject: _sub_views 
 	      forKey: @"NSSubviews"];
+      [aCoder encodeObject: _identifier forKey: @"NSUserInterfaceItemIdentifier"];
       [aCoder encodeRect: _frame 
 	      forKey: @"NSFrame"];
 
@@ -4881,6 +4882,9 @@ static NSView* findByTag(NSView *view, NSInteger aTag, NSUInteger *level)
     {
       NSView *prevKeyView = nil;
       NSView *nextKeyView = nil;
+
+      if ([aDecoder containsValueForKey: @"NSUserInterfaceItemIdentifier"])
+        [self setIdentifier: [aDecoder decodeObjectForKey: @"NSUserInterfaceItemIdentifier"]];
 
       if ([aDecoder containsValueForKey: @"NSFrame"])
         {

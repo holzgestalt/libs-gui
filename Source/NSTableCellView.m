@@ -201,7 +201,9 @@
 
 - (id) copyWithZone: (NSZone *)zone
 {
-  NSTableCellView *copy = [[NSTableCellView allocWithZone: zone] init];
+  NSTableCellView *copy = [[[self class] allocWithZone: zone] initWithFrame: [self frame]];
+
+  [copy setIdentifier: [self identifier]];
 
   [copy setObjectValue: [self objectValue]];
   [copy setImageView: [self imageView]];

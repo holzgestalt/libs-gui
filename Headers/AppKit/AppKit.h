@@ -225,6 +225,7 @@
 #import <AppKit/NSRulerView.h>
 #import <AppKit/NSRotationGestureRecognizer.h>
 #import <AppKit/NSSearchField.h>
+#import <AppKit/NSSearchToolbarItem.h>
 #import <AppKit/NSSearchFieldCell.h>
 #import <AppKit/NSSecureTextField.h>
 #import <AppKit/NSSegmentedCell.h>

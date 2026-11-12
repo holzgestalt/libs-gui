@@ -354,9 +354,10 @@ APPKIT_EXPORT_CLASS
 /**
  * Returns the appropriate system font size for the given control size.
  * This method provides the correct font size for different control sizes
- * (regular, small, mini) to maintain visual consistency.
+ * (regular, small, mini, large) to maintain visual consistency.
  * The controlSize parameter specifies the control size (NSRegularControlSize,
- * NSSmallControlSize, NSMiniControlSize).
+ * NSSmallControlSize, NSMiniControlSize, NSControlSizeLarge).
+ * Large controls use NSLargeFontSize when set, otherwise systemFontSize + 2.
  * Returns the appropriate font size for the specified control size.
  */
 + (CGFloat) systemFontSizeForControlSize: (NSControlSize)controlSize;

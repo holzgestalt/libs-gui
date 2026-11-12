@@ -68,7 +68,7 @@ enum _NSToolbarItemVisibilityPriority {
 #endif
 
 APPKIT_EXPORT_CLASS
-@interface NSToolbarItem : NSObject <NSCopying, NSValidatedUserInterfaceItem>
+@interface NSToolbarItem : NSObject <NSCopying, NSCoding, NSValidatedUserInterfaceItem>
 {
   // externally visible variables
   BOOL _autovalidates;
