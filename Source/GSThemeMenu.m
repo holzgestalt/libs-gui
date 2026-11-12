@@ -143,6 +143,18 @@
   [[mr window] orderFrontRegardless];
 }
 
+- (BOOL) trackMenuView: (NSMenuView *)menuView withEvent: (NSEvent *)event
+{
+  return NO;
+}
+
+- (BOOL) displayNativePopUpMenu: (NSMenu *)menu
+                 atScreenRect: (NSRect)rect
+                    forWindow: (NSWindow *)window
+{
+  return NO;
+}
+
 - (void) processCommand: (void *)context
 {
   // this is only implemented when we handle native menus.

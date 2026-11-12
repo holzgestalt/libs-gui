@@ -1569,6 +1569,18 @@ withRepeatedImage: (NSImage*)image
  */
 - (BOOL) doesProcessEventsForPopUpMenu;
 
+/** Return YES after tracking a menu with a platform-native implementation.
+ * Returning NO keeps the standard AppKit tracking path. The native tracker
+ * must return only after selection or cancellation and release its input grab
+ * before dispatching an action. */
+- (BOOL) trackMenuView: (NSMenuView *)menuView withEvent: (NSEvent *)event;
+
+/** Synchronously display an explicitly positioned native menu. The rectangle
+ * is in AppKit screen coordinates. Return NO to use the AppKit popup path. */
+- (BOOL) displayNativePopUpMenu: (NSMenu *)menu
+                 atScreenRect: (NSRect)rect
+                    forWindow: (NSWindow *)window;
+
 /**
  * Display the menu icon in the application.
  */
