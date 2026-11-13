@@ -707,6 +707,20 @@ static NSNotificationCenter *nc;
   return [_cell cellSize];
 }
 
+- (CGFloat) firstBaselineOffsetFromTop
+{
+  NSFont *font = [self font];
+  NSSize size = [self intrinsicContentSize];
+  if (font == nil || size.height == NSViewNoIntrinsicMetric)
+    return 0;
+  return (size.height - [font ascender] + [font descender]) / 2 + [font ascender];
+}
+
+- (CGFloat) baselineOffsetFromBottom
+{
+  return [self intrinsicContentSize].height - [self firstBaselineOffsetFromTop];
+}
+
 /** <p>Returns whether the NSControl's cell is opaque</p>
  */
 - (BOOL) isOpaque

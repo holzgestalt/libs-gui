@@ -1343,6 +1343,7 @@ many times.
 
   if (_contentView != nil)
     {
+      [_layoutEngine pinContentView: _contentView];
       [_wv setContentView: _contentView];
     }
 }
@@ -2692,6 +2693,9 @@ titleWithRepresentedFilename(NSString *representedFilename)
     {
       return;
     }
+
+  if (_layoutEngine != nil)
+    [self layoutIfNeeded];
 
   if (_f.views_need_display)
     {

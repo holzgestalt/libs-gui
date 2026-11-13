@@ -43,7 +43,7 @@ extern BOOL GSAutoLayoutEngineExists;
    NSMapTable *_constraintsByAutoLayoutConstaintHash;
    NSMapTable *_layoutConstraintsBySolverConstraint;
    NSMutableArray *_trackedViews;
-   NSMutableDictionary *_viewIndexByViewHash;
+   NSMapTable *_viewIndexByViewHash;
    NSMutableDictionary *_viewAlignmentRectByViewIndex;
    NSMutableDictionary *_constraintsByViewIndex;
    NSMapTable *_internalConstraintsByViewIndex;
@@ -52,6 +52,10 @@ extern BOOL GSAutoLayoutEngineExists;
    NSView *_contentView;
    NSLayoutConstraint *_contentWidthConstraint;
    NSLayoutConstraint *_contentHeightConstraint;
+   NSArray *_contentConstraints;
+   NSMapTable *_frameConstraintsByView;
+   NSMapTable *_intrinsicConstraintsByView;
+   BOOL _preparingLayout;
    /* While _batchDepth is above zero the solver constraints produced by a
       group of layout constraints collect here, to be added or removed in one
       call.  A group is either all additions or all removals. */
@@ -70,6 +74,8 @@ extern BOOL GSAutoLayoutEngineExists;
 - (void) removeConstraints: (NSArray *)constraints;
 
 - (NSRect) alignmentRectForView: (NSView *)view;
+- (BOOL) hasLayoutForView: (NSView *)view;
+- (void) prepareForLayout;
 
 - (NSArray *) constraintsForView: (NSView *)view;
 

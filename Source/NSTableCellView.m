@@ -25,6 +25,43 @@
 #import "AppKit/NSTableCellView.h"
 #import "AppKit/NSImageView.h"
 #import "AppKit/NSTextField.h"
+#import "AppKit/NSKeyValueBinding.h"
+#import "AppKit/NSLayoutConstraint.h"
+#import <Foundation/NSKeyedArchiver.h>
+#import <Foundation/NSMapTable.h>
+#import <Foundation/NSHashTable.h>
+#import <Foundation/NSNull.h>
+
+/* Targets outside the copied hierarchy are connections, not part of the
+   prototype. They may not support NSCoding. Restore them after decoding. */
+@interface GSTableCellViewCopyDelegate : NSObject
+{
+@public
+  NSHashTable *externalTargets;
+}
+@end
+
+@implementation GSTableCellViewCopyDelegate
+- (id) archiver: (NSKeyedArchiver *)archiver willEncodeObject: (id)object
+{
+  return [externalTargets containsObject: object] ? nil : object;
+}
+@end
+
+static void
+mapCopiedViews(NSView *source, NSView *copy, NSMapTable *map)
+{
+  NSArray *children = [source subviews];
+  NSArray *copies = [copy subviews];
+  NSUInteger i;
+
+  [map setObject: copy forKey: source];
+  if ([source isKindOfClass: [NSControl class]])
+    [map setObject: [(NSControl *)copy cell]
+           forKey: [(NSControl *)source cell]];
+  for (i = 0; i < [children count]; i++)
+    mapCopiedViews([children objectAtIndex: i], [copies objectAtIndex: i], map);
+}
 
 @implementation NSTableCellView
 
@@ -202,15 +239,103 @@
 - (id) copyWithZone: (NSZone *)zone
 {
   NSTableCellView *copy = [[[self class] allocWithZone: zone] initWithFrame: [self frame]];
+  NSArray *parts = [NSArray arrayWithObjects: [self subviews],
+    [self textField] ?: (id)[NSNull null],
+    [self imageView] ?: (id)[NSNull null], nil];
+  NSMutableArray *views = [NSMutableArray arrayWithArray: [self subviews]];
+  NSHashTable *targets = [NSHashTable hashTableWithOptions:
+    NSPointerFunctionsObjectPointerPersonality];
+  GSTableCellViewCopyDelegate *delegate = [GSTableCellViewCopyDelegate new];
+  NSMutableData *data = [NSMutableData data];
+  NSKeyedArchiver *coder = [[NSKeyedArchiver alloc] initForWritingWithMutableData: data];
+  NSArray *decoded;
+  NSMapTable *map;
+  NSEnumerator *enumerator;
+  id source;
+  NSUInteger i;
+
+  if ([self textField] && ![views containsObject: [self textField]])
+    [views addObject: [self textField]];
+  if ([self imageView] && ![views containsObject: [self imageView]])
+    [views addObject: [self imageView]];
+  for (i = 0; i < [views count]; i++)
+    {
+      NSView *view = [views objectAtIndex: i];
+      for (NSView *child in [view subviews])
+        if (![views containsObject: child]) [views addObject: child];
+    }
+  for (NSView *view in views)
+    if ([view isKindOfClass: [NSControl class]])
+      {
+        id target = [(NSControl *)view target];
+        if (target && ![views containsObject: target]) [targets addObject: target];
+      }
+  delegate->externalTargets = targets;
+  [coder setDelegate: delegate];
+  [coder encodeObject: parts forKey: @"root"];
+  [coder finishEncoding];
+  RELEASE(coder);
+  RELEASE(delegate);
+  decoded = [NSKeyedUnarchiver unarchiveObjectWithData: data];
+
+  [copy setSubviews: [decoded objectAtIndex: 0]];
+  [copy setTextField: [self textField] ? [decoded objectAtIndex: 1] : nil];
+  [copy setImageView: [self imageView] ? [decoded objectAtIndex: 2] : nil];
+  map = [NSMapTable mapTableWithKeyOptions: NSPointerFunctionsObjectPointerPersonality
+                            valueOptions: NSPointerFunctionsStrongMemory];
+  mapCopiedViews(self, copy, map);
+  if ([self textField]) mapCopiedViews([self textField], [copy textField], map);
+  if ([self imageView]) mapCopiedViews([self imageView], [copy imageView], map);
 
   [copy setIdentifier: [self identifier]];
-
+  [copy setAutoresizingMask: [self autoresizingMask]];
+  [copy setAutoresizesSubviews: [self autoresizesSubviews]];
+  [copy setHidden: [self isHidden]];
+  [copy setBounds: [self bounds]];
+  [copy setTranslatesAutoresizingMaskIntoConstraints: [self translatesAutoresizingMaskIntoConstraints]];
+  for (NSLayoutConstraint *constraint in [self constraints])
+    {
+      id first = [map objectForKey: [constraint firstItem]];
+      id second = [map objectForKey: [constraint secondItem]];
+      if (first != nil && ([constraint secondItem] == nil || second != nil))
+        {
+          NSLayoutConstraint *cloned = [NSLayoutConstraint constraintWithItem: first
+            attribute: [constraint firstAttribute] relatedBy: [constraint relation]
+            toItem: second attribute: [constraint secondAttribute]
+            multiplier: [constraint multiplier] constant: [constraint constant]];
+          [cloned setPriority: [constraint priority]];
+          [cloned setIdentifier: [constraint identifier]];
+          [copy addConstraint: cloned];
+        }
+    }
   [copy setObjectValue: [self objectValue]];
-  [copy setImageView: [self imageView]];
-  [copy setTextField: [self textField]];
   [copy setDraggingImageComponents: [self draggingImageComponents]];
   [copy setBackgroundStyle: [self backgroundStyle]];
   [copy setRowSizeStyle: [self rowSizeStyle]];
+
+  /* Bindings are not part of NSView's archive. Reconnect copied controls to
+     their own cell, while keeping connections to external models intact. */
+  enumerator = [map keyEnumerator];
+  while ((source = [enumerator nextObject]) != nil)
+    {
+      id destination = [map objectForKey: source];
+      if ([source respondsToSelector: @selector(target)])
+        {
+          id target = [source target];
+          [destination setTarget: [map objectForKey: target] ?: target];
+          [destination setAction: [source action]];
+        }
+      for (NSString *binding in [source exposedBindings])
+        {
+          NSDictionary *info = [source infoForBinding: binding];
+          id observed = [info objectForKey: NSObservedObjectKey];
+          if (observed != nil)
+            [destination bind: binding
+                     toObject: [map objectForKey: observed] ?: observed
+                  withKeyPath: [info objectForKey: NSObservedKeyPathKey]
+                      options: [info objectForKey: NSOptionsKey]];
+        }
+    }
 
   return copy;
 }

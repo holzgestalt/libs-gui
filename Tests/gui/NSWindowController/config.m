@@ -1,9 +1,11 @@
 #import "Testing.h"
 #import <Foundation/NSAutoreleasePool.h>
 #import <Foundation/NSGeometry.h>
+#import <Foundation/NSURL.h>
 #import <AppKit/NSApplication.h>
 #import <AppKit/NSWindow.h>
 #import <AppKit/NSWindowController.h>
+#import <AppKit/NSDocument.h>
 
 /* State and round-trips for NSWindowController.  Creating a window needs a
    backend, so this keeps the usual guard. */
@@ -52,6 +54,20 @@ main(int argc, const char **argv)
       /* setDocumentEdited: forwards to the window's documentEdited flag. */
       PASS([w isDocumentEdited] == YES,
         "setDocumentEdited: marks the window edited");
+
+      NSWindowController *manual = AUTORELEASE([[NSWindowController alloc] initWithWindow: nil]);
+      NSWindow *other = AUTORELEASE([[NSWindow alloc]
+        initWithContentRect: NSMakeRect(0, 0, 100, 100)
+        styleMask: NSTitledWindowMask backing: NSBackingStoreBuffered defer: NO]);
+      [manual setWindow: other];
+      PASS([manual isWindowLoaded], "assigning an existing window reports it loaded");
+      NSDocument *document = AUTORELEASE([NSDocument new]);
+      [document setFileURL: [NSURL fileURLWithPath: @"/tmp/LoadedDocument.xml"]];
+      [document addWindowController: manual];
+      PASS([[other title] isEqual: @"LoadedDocument.xml"], "manually supplied windows synchronize their document title");
+      [document removeWindowController: manual];
+      [manual setWindow: nil];
+      PASS(![manual isWindowLoaded], "clearing the window reports it unloaded");
     }
   NS_HANDLER
     if ([[localException name] isEqualToString: NSInternalInconsistencyException]

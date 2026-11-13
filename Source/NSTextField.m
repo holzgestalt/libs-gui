@@ -57,6 +57,22 @@ static Class usedCellClass;
 static Class textFieldCellClass;
 
 @implementation NSTextField
+
+- (NSSize) intrinsicContentSize
+{
+  NSSize size = [super intrinsicContentSize];
+  NSString *placeholder = [(NSTextFieldCell *)_cell placeholderString];
+  if ([[self stringValue] length] == 0 && [placeholder length] != 0)
+    {
+      NSTextFieldCell *measurement = [_cell copy];
+      [measurement setStringValue: placeholder];
+      NSSize placeholderSize = [measurement cellSize];
+      size.width = MAX(size.width, placeholderSize.width);
+      size.height = MAX(size.height, placeholderSize.height);
+      RELEASE(measurement);
+    }
+  return size;
+}
 //
 // Class methods
 //

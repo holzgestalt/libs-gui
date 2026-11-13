@@ -37,6 +37,7 @@
 #import <Foundation/NSNotification.h>
 #import <Foundation/NSString.h>
 #import <Foundation/NSSortDescriptor.h>
+#import <Foundation/NSSet.h>
 
 #import "AppKit/NSOutlineView.h"
 #import "AppKit/NSKeyValueBinding.h"
@@ -211,19 +212,23 @@
 {
   NSUInteger length = [indexPath length];
   NSUInteger pos = 0;
-  NSMutableArray *children = [_arranged_objects mutableChildNodes];
+  NSArray *children = [[self arrangedObjects] mutableChildNodes];
   NSUInteger lastIndex = 0;
   id obj = nil;
+
+  if (length == 0) return nil;
 
   for (pos = 0; pos < length - 1; pos++)
     {
       NSUInteger i = [indexPath indexAtPosition: pos];
+      if (i >= [children count] || _childrenKeyPath == nil) return nil;
       id node = [children objectAtIndex: i];
 
       children = [node valueForKeyPath: _childrenKeyPath];
     }
 
   lastIndex = [indexPath indexAtPosition: length - 1];
+  if (lastIndex >= [children count]) return nil;
   obj = [children objectAtIndex: lastIndex];
 
   return obj;
@@ -236,11 +241,28 @@
   FOR_IN(NSIndexPath*, path, _selection_index_paths)
     {
       id obj = [self _objectAtIndexPath: path];
-      [selectedObjects addObject: obj];
+      if (obj != nil) [selectedObjects addObject: obj];
     }
   END_FOR_IN(_selection_index_paths);
 
   return selectedObjects;
+}
+
++ (NSSet *) keyPathsForValuesAffectingSelection
+{
+  return [NSSet setWithObjects: NSSelectionIndexPathsBinding,
+    @"selectionIndexPath", NSContentBinding, nil];
+}
+
++ (NSSet *) keyPathsForValuesAffectingSelectedObjects
+{
+  return [self keyPathsForValuesAffectingSelection];
+}
+
+- (id) selection
+{
+  NSArray *selected = [self selectedObjects];
+  return [selected count] == 1 ? [selected objectAtIndex: 0] : nil;
 }
 
 - (NSIndexPath *) selectionIndexPath

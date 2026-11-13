@@ -317,9 +317,7 @@ NSInteger const GS_DEFAULT_SUPERVIEW_SPACING = 20;
                                       toItem: secondItem
                                    attribute: secondAttribute
                                   multiplier: 1.0
-                                    constant: (_isVerticalOrientation
-                                                ? -viewSpacingConstant
-                                                : viewSpacingConstant)];
+                                    constant: viewSpacingConstant];
 
   [_constraints addObject: viewSeparatorConstraint];
 }
@@ -368,9 +366,7 @@ NSInteger const GS_DEFAULT_SUPERVIEW_SPACING = 20;
                                       toItem: secondItem
                                    attribute: firstAttribute
                                   multiplier: 1.0
-                                    constant: (_isVerticalOrientation
-                                                ? -viewSpacingConstant
-                                                : viewSpacingConstant)];
+                                    constant: viewSpacingConstant];
   [_constraints addObject: leadingConstraintToSuperview];
 }
 
@@ -417,9 +413,7 @@ NSInteger const GS_DEFAULT_SUPERVIEW_SPACING = 20;
                                       toItem: secondItem
                                    attribute: attribute
                                   multiplier: 1.0
-                                    constant: (_isVerticalOrientation
-                                                ? -viewSpacingConstant
-                                                : viewSpacingConstant)];
+                                    constant: viewSpacingConstant];
   [_constraints addObject: trailingConstraintToSuperview];
 }
 

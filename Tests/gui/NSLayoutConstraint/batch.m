@@ -15,7 +15,7 @@ constraintsForSubview(NSView *sub, NSView *content)
     [[sub leftAnchor] constraintEqualToAnchor: [content leftAnchor]
                                      constant: 20.0],
     [[sub bottomAnchor] constraintEqualToAnchor: [content bottomAnchor]
-                                       constant: 10.0],
+                                       constant: -10.0],
     [[sub widthAnchor] constraintEqualToAnchor: [content widthAnchor]
                                       constant: -50.0],
     [[sub heightAnchor] constraintEqualToAnchor: [content heightAnchor]

@@ -33,16 +33,16 @@ main(int argc, const char **argv)
       [sub setTranslatesAutoresizingMaskIntoConstraints: NO];
       [content addSubview: sub];
 
-      /* Inset on all four edges. The trailing (right) and top constants are
-         negative offsets from the container edges. */
+      /* Layout's vertical coordinates increase downwards, regardless of the
+         parent's flipping: top insets are positive and bottom insets negative. */
       [[[sub leftAnchor] constraintEqualToAnchor: [content leftAnchor]
                                         constant: 20.0] setActive: YES];
       [[[sub rightAnchor] constraintEqualToAnchor: [content rightAnchor]
                                          constant: -30.0] setActive: YES];
       [[[sub bottomAnchor] constraintEqualToAnchor: [content bottomAnchor]
-                                          constant: 10.0] setActive: YES];
+                                          constant: -10.0] setActive: YES];
       [[[sub topAnchor] constraintEqualToAnchor: [content topAnchor]
-                                       constant: -15.0] setActive: YES];
+                                       constant: 15.0] setActive: YES];
 
       [w layoutIfNeeded];
 

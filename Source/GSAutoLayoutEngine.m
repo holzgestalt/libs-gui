@@ -22,6 +22,7 @@
 
 #import "GSAutoLayoutEngine.h"
 #import "AppKit/NSLayoutConstraint.h"
+#import "AppKit/NSClipView.h"
 #import "GSCSConstraint.h"
 #import "GSFastEnumeration.h"
 #import "NSViewPrivate.h"
@@ -59,6 +60,7 @@ enum
 typedef NSInteger GSLayoutViewAttribute;
 
 @interface GSAutoLayoutEngine (PrivateMethods)
+- (void) updateFrameConstraintsForView: (NSView *)view;
 
 - (GSCSConstraint *) solverConstraintForConstraint:
     (NSLayoutConstraint *)constraint;
@@ -228,6 +230,11 @@ typedef NSInteger GSLayoutViewAttribute;
 
 BOOL GSAutoLayoutEngineExists = NO;
 
+/* Imported frame sizes dominate ordinary optional constraints, while still
+   allowing required content minimums to win. This is an internal solver
+   weight, not a public NSLayoutPriority. */
+static const CGFloat GSLayoutFrameSizeStrength = 1.0e9;
+
 @implementation GSAutoLayoutEngine
 
 - (instancetype) initWithSolver: (GSCassowarySolver *)cassowarySolver;
@@ -237,6 +244,7 @@ BOOL GSAutoLayoutEngineExists = NO;
     {
       GSAutoLayoutEngineExists = YES;
       ASSIGN(_solver, cassowarySolver);
+      [_solver enablePriorityLevels];
 
       ASSIGN(_variablesByKey, [NSMapTable strongToStrongObjectsMapTable]);
 
@@ -259,13 +267,17 @@ BOOL GSAutoLayoutEngineExists = NO;
 
       ASSIGN(_viewAlignmentRectByViewIndex, [NSMutableDictionary dictionary]);
 
-      ASSIGN(_viewIndexByViewHash, [NSMutableDictionary dictionary]);
+      ASSIGN(_viewIndexByViewHash, [NSMapTable mapTableWithKeyOptions:
+        NSPointerFunctionsObjectPointerPersonality | NSPointerFunctionsStrongMemory
+        valueOptions: NSPointerFunctionsStrongMemory]);
 
       ASSIGN(_constraintsByViewIndex, [NSMutableDictionary dictionary]);
 
       ASSIGN(_internalConstraintsByViewIndex, [NSMapTable strongToStrongObjectsMapTable]);
 
       ASSIGN(_batchedSolverConstraints, [NSMutableArray array]);
+      ASSIGN(_frameConstraintsByView, [NSMapTable strongToStrongObjectsMapTable]);
+      ASSIGN(_intrinsicConstraintsByView, [NSMapTable strongToStrongObjectsMapTable]);
       _batchDepth = 0;
     }
   return self;
@@ -302,6 +314,22 @@ BOOL GSAutoLayoutEngineExists = NO;
 
 - (void) addConstraint: (NSLayoutConstraint *)constraint
 {
+  if ([self getExistingConstraintForAutolayoutConstraint: constraint] != nil)
+    return;
+
+  /* Frame-managed ancestors (split views, clip views, and window content)
+     supply the coordinate system for constrained descendants. */
+  NSView *item = [constraint firstItem];
+  while ((item = [item superview]) != nil && item != [_contentView superview])
+    [self addSupportingInternalConstraintsToView: item
+                                  forAttribute: NSLayoutAttributeNotAnAttribute
+                                    constraint: nil];
+  item = [constraint secondItem];
+  while ((item = [item superview]) != nil && item != [_contentView superview])
+    [self addSupportingInternalConstraintsToView: item
+                                  forAttribute: NSLayoutAttributeNotAnAttribute
+                                    constraint: nil];
+
   GSCSConstraint *solverConstraint =
       [self solverConstraintForConstraint: constraint];
 
@@ -326,6 +354,7 @@ BOOL GSAutoLayoutEngineExists = NO;
     }
 
   [self addConstraintAgainstViewConstraintsArray: constraint];
+  [self addObserverToConstraint: constraint];
 }
 
 - (void) removeConstraint: (NSLayoutConstraint *)constraint
@@ -336,6 +365,9 @@ BOOL GSAutoLayoutEngineExists = NO;
     {
       return;
     }
+
+  [constraint removeObserver: self forKeyPath: @"constant"];
+  [constraint removeObserver: self forKeyPath: @"priority"];
 
   [self removeSolverConstraint: solverConstraint];
 
@@ -349,6 +381,8 @@ BOOL GSAutoLayoutEngineExists = NO;
     }
 
   [_supportingConstraintsByConstraint removeObjectForKey: solverConstraint];
+  [_constraintsByAutoLayoutConstaintHash removeObjectForKey: constraint];
+  [_layoutConstraintsBySolverConstraint removeObjectForKey: solverConstraint];
 
   if (_batchDepth == 0)
     {
@@ -421,7 +455,9 @@ BOOL GSAutoLayoutEngineExists = NO;
       break;
     }
   GSCSStrength *strength =
-    [[GSCSStrength alloc] initWithName: nil strength: [constraint priority]];
+    [[GSCSStrength alloc] initWithName: nil strength:
+      (constraint == _contentWidthConstraint || constraint == _contentHeightConstraint)
+        ? GSLayoutFrameSizeStrength : [constraint priority]];
   [newConstraint setStrength: strength];
   RELEASE(strength);
 
@@ -640,7 +676,7 @@ BOOL GSAutoLayoutEngineExists = NO;
   [_trackedViews addObject: view];
   [_viewIndexByViewHash
     setObject: [NSNumber numberWithUnsignedInteger: viewIndex]
-        forKey: [NSNumber numberWithUnsignedInteger: [view hash]]];
+        forKey: view];
 
   return viewIndex;
 }
@@ -662,7 +698,10 @@ BOOL GSAutoLayoutEngineExists = NO;
     {
       [self addInternalWidthConstraintForView: view];
       [self addInternalHeightConstraintForView: view];
-      [self addIntrinsicContentSizeConstraintsToView: view];
+      if (![view translatesAutoresizingMaskIntoConstraints])
+        [self addIntrinsicContentSizeConstraintsToView: view];
+      else if (view != _contentView && _contentView != nil)
+        [self updateFrameConstraintsForView: view];
     }
 
   switch (attribute)
@@ -733,6 +772,10 @@ BOOL GSAutoLayoutEngineExists = NO;
 
   [self addInternalSolverConstraint: widthRelationshipToMaxXAndMinXConstraint
                             forView: view];
+  [self addInternalSolverConstraint: [GSCSConstraint
+    constraintWithLeftVariable: widthConstraintVariable
+                      operator: GSCSConstraintOperationGreaterThanOrEqual
+                 rightConstant: 0] forView: view];
   RELEASE(maxXMinusMinX);
 }
 
@@ -750,6 +793,10 @@ BOOL GSAutoLayoutEngineExists = NO;
   [maxYMinusMinY addVariable: minY coefficient: -1];
   GSCSConstraint *heightConstraint = [GSCSConstraint constraintWithLeftVariable: heightConstraintVariable operator: GSCSConstraintOperatorEqual rightExpression: maxYMinusMinY];
   [self addInternalSolverConstraint: heightConstraint forView: view];
+  [self addInternalSolverConstraint: [GSCSConstraint
+    constraintWithLeftVariable: heightConstraintVariable
+                      operator: GSCSConstraintOperationGreaterThanOrEqual
+                 rightConstant: 0] forView: view];
 
   RELEASE(maxYMinusMinY);
 }
@@ -806,7 +853,7 @@ BOOL GSAutoLayoutEngineExists = NO;
                                  constraint: (GSCSConstraint *)constraint
 {
   GSCSVariable *minY = [self variableForView: view
-                                andAttribute: GSLayoutAttributeMinY];
+                                andAttribute: GSLayoutAttributeMaxY];
   GSCSVariable *bottomVariable =
     [self variableForView: view andAttribute: GSLayoutAttributeBottom];
   GSCSConstraint *minYBottomRelationshipConstraint = [GSCSConstraint constraintWithLeftVariable: minY operator: GSCSConstraintOperatorEqual rightVariable: bottomVariable];
@@ -818,7 +865,7 @@ BOOL GSAutoLayoutEngineExists = NO;
                               constraint: (GSCSConstraint *)constraint
 {
     GSCSVariable *maxY = [self variableForView: view
-                                  andAttribute: GSLayoutAttributeMaxY];
+                                  andAttribute: GSLayoutAttributeMinY];
     GSCSVariable *topVariable = [self variableForView: view
                                          andAttribute: GSLayoutAttributeTop];
     GSCSConstraint *maxYTopRelationshipConstraint = [GSCSConstraint constraintWithLeftVariable: maxY operator: GSCSConstraintOperatorEqual rightVariable: topVariable];
@@ -875,14 +922,14 @@ BOOL GSAutoLayoutEngineExists = NO;
       [self variableForView: view
                andAttribute: GSLayoutAttributeFirstBaseline];
     GSCSVariable *maxY = [self variableForView: view
-                                  andAttribute: GSLayoutAttributeMaxY];
+                                  andAttribute: GSLayoutAttributeMinY];
     GSCSVariable *firstBaselineOffsetVariable =
       [self variableForView: view
            andViewAttribute: GSLayoutViewAttributeFirstBaselineOffsetFromTop];
 
     GSCSLinearExpression *exp =
       [[GSCSLinearExpression alloc] initWithVariable: maxY];
-    [exp addVariable: firstBaselineOffsetVariable coefficient: -1];
+    [exp addVariable: firstBaselineOffsetVariable coefficient: 1];
     GSCSConstraint *firstBaselineConstraint = [GSCSConstraint constraintWithLeftVariable: firstBaselineVariable operator: GSCSConstraintOperatorEqual rightExpression: exp];
     RELEASE(exp);
 
@@ -900,7 +947,7 @@ BOOL GSAutoLayoutEngineExists = NO;
     GSCSVariable *baselineVariable =
       [self variableForView: view andAttribute: GSLayoutAttributeBaseline];
     GSCSVariable *minY = [self variableForView: view
-                                  andAttribute: GSLayoutAttributeMinY];
+                                  andAttribute: GSLayoutAttributeMaxY];
     GSCSVariable *baselineOffsetVariable =
       [self variableForView: view
            andViewAttribute: GSLayoutViewAttributeBaselineOffsetFromBottom];
@@ -911,7 +958,7 @@ BOOL GSAutoLayoutEngineExists = NO;
                                              constraint: constraint];
     GSCSLinearExpression *exp =
       [[GSCSLinearExpression alloc] initWithVariable: minY];
-    [exp addVariable: baselineOffsetVariable];
+    [exp addVariable: baselineOffsetVariable coefficient: -1];
     GSCSConstraint *baselineConstraint = [GSCSConstraint constraintWithLeftVariable: baselineVariable operator: GSCSConstraintOperatorEqual rightExpression: exp];
     RELEASE(exp);
 
@@ -938,6 +985,26 @@ BOOL GSAutoLayoutEngineExists = NO;
 - (void) addIntrinsicContentSizeConstraintsToView: (NSView *)view
 {
     NSSize intrinsicContentSize = [view intrinsicContentSize];
+    NSArray *signature = [NSArray arrayWithObjects:
+      [NSValue valueWithSize: intrinsicContentSize],
+      [NSNumber numberWithFloat: [view contentHuggingPriorityForOrientation: NSLayoutConstraintOrientationHorizontal]],
+      [NSNumber numberWithFloat: [view contentHuggingPriorityForOrientation: NSLayoutConstraintOrientationVertical]],
+      [NSNumber numberWithFloat: [view contentCompressionResistancePriorityForOrientation: NSLayoutConstraintOrientationHorizontal]],
+      [NSNumber numberWithFloat: [view contentCompressionResistancePriorityForOrientation: NSLayoutConstraintOrientationVertical]], nil];
+    NSDictionary *previous = [_intrinsicConstraintsByView objectForKey: view];
+    if ([[previous objectForKey: @"signature"] isEqual: signature])
+      return;
+    NSArray *old = [previous objectForKey: @"constraints"];
+    if ([old count] != 0)
+      {
+        [_solver removeConstraints: old];
+        [_solverConstraints removeObjectsInArray: old];
+      }
+    NSMutableArray *internal = [_internalConstraintsByViewIndex objectForKey: view];
+    [internal removeObjectsInArray: old];
+    NSUInteger start = [internal count];
+    BOOL ownBatch = _batchDepth == 0;
+    if (ownBatch) _batchDepth++;
     if (intrinsicContentSize.width != NSViewNoIntrinsicMetric)
       {
             [self
@@ -954,6 +1021,15 @@ BOOL GSAutoLayoutEngineExists = NO;
                                   intrinsicSizeAttribute: GSLayoutViewAttributeIntrinsicHeight
                                       dimensionAttribute: GSLayoutAttributeHeight];
       }
+    NSArray *added = [internal subarrayWithRange: NSMakeRange(start, [internal count] - start)];
+    if (ownBatch)
+      {
+        _batchDepth--;
+        [_solver addConstraints: _batchedSolverConstraints];
+        [_batchedSolverConstraints removeAllObjects];
+      }
+    [_intrinsicConstraintsByView setObject: [NSDictionary dictionaryWithObjectsAndKeys:
+      signature, @"signature", added, @"constraints", nil] forKey: view];
 }
 
 - (void) addSupportingIntrinsicSizeConstraintsToView: (NSView *)view
@@ -969,10 +1045,11 @@ BOOL GSAutoLayoutEngineExists = NO;
     GSCSVariable *intrinsicSizeVariable =
       [self getExistingVariableForView: view
                      withViewAttribute: intrinsicSizeAttribute];
-    GSCSConstraint *intrinsicSizeConstraint =
-      [GSCSConstraint editConstraintWithVariable: intrinsicSizeVariable];
+    GSCSConstraint *intrinsicSizeConstraint = [GSCSConstraint
+      constraintWithLeftVariable: intrinsicSizeVariable
+                        operator: GSCSConstraintOperatorEqual
+                   rightConstant: [self valueForView: view attribute: intrinsicSizeAttribute]];
     [self addInternalSolverConstraint: intrinsicSizeConstraint forView: view];
-    [self resolveVariableForView: view attribute: intrinsicSizeAttribute];
 
     double huggingPriority =
       [view contentHuggingPriorityForOrientation: orientation];
@@ -1003,11 +1080,11 @@ BOOL GSAutoLayoutEngineExists = NO;
 {
   GSCSVariable *variable = [self getExistingVariableForView: view
                                           withViewAttribute: attribute];
-  GSCSConstraint *editConstraint =
-    [GSCSConstraint editConstraintWithVariable: variable];
+  GSCSConstraint *editConstraint = [GSCSConstraint
+    constraintWithLeftVariable: variable operator: GSCSConstraintOperatorEqual
+                 rightConstant: [self valueForView: view attribute: attribute]];
   [self addSupportingSolverConstraint: editConstraint
                   forSolverConstraint: constraint];
-  [self resolveVariableForView: view attribute: attribute];
 }
 
 - (void) addObserverToConstraint: (NSLayoutConstraint *)constranit
@@ -1016,6 +1093,8 @@ BOOL GSAutoLayoutEngineExists = NO;
                 forKeyPath: @"constant"
                   options: NSKeyValueObservingOptionNew
                   context: nil];
+  [constranit addObserver: self forKeyPath: @"priority"
+                 options: NSKeyValueObservingOptionNew context: nil];
 }
 
 - (void) observeValueForKeyPath: (NSString *)keyPath
@@ -1034,11 +1113,19 @@ BOOL GSAutoLayoutEngineExists = NO;
 {
   GSCSConstraint *kConstraint =
     [self getExistingConstraintForAutolayoutConstraint: constraint];
+  if (kConstraint == nil)
+    return;
+  NSArray *supporting = RETAIN([_supportingConstraintsByConstraint objectForKey: kConstraint]);
   [self removeSolverConstraint: kConstraint];
+  [_supportingConstraintsByConstraint removeObjectForKey: kConstraint];
+  [_layoutConstraintsBySolverConstraint removeObjectForKey: kConstraint];
 
   GSCSConstraint *newKConstraint =
     [self solverConstraintForConstraint: constraint];
   [self mapLayoutConstraint: constraint toSolverConstraint: newKConstraint];
+  if (supporting != nil)
+    [_supportingConstraintsByConstraint setObject: supporting forKey: newKConstraint];
+  RELEASE(supporting);
   [self addSolverConstraint: newKConstraint];
 
   [self updateAlignmentRectsForTrackedViews];
@@ -1046,6 +1133,11 @@ BOOL GSAutoLayoutEngineExists = NO;
 
 - (void) removeInternalConstraintsForView: (NSView *)view
 {
+  NSDictionary *frameInfo = [_frameConstraintsByView objectForKey: view];
+  FOR_IN(GSCSConstraint *, constraint, [frameInfo objectForKey: @"constraints"])
+    [self removeSolverConstraint: constraint];
+  END_FOR_IN([frameInfo objectForKey: @"constraints"]);
+  [_frameConstraintsByView removeObjectForKey: view];
   NSArray *internalViewConstraints =
       [_internalConstraintsByViewIndex objectForKey: view];
   FOR_IN(GSCSConstraint *, constraint, internalViewConstraints)
@@ -1053,6 +1145,7 @@ BOOL GSAutoLayoutEngineExists = NO;
   END_FOR_IN(internalViewConstraints);
 
   [_internalConstraintsByViewIndex removeObjectForKey: view];
+  [_intrinsicConstraintsByView removeObjectForKey: view];
 }
 
 - (BOOL) hasConstraintsForView: (NSView *)view
@@ -1159,12 +1252,13 @@ BOOL GSAutoLayoutEngineExists = NO;
     {
       NSRect existingAlignmentRect =
           [self currentAlignmentRectForViewAtIndex: viewIndex];
-      BOOL isExistingAlignmentRect = NSIsEmptyRect(existingAlignmentRect);
+      BOOL hasExistingAlignmentRect =
+        [_viewAlignmentRectByViewIndex objectForKey: viewIndex] != nil;
       NSRect solverAlignmentRect = [self solverAlignmentRectForView: view
                                                            solution: solution];
       [self recordAlignmentRect: solverAlignmentRect forViewIndex: viewIndex];
 
-      if (isExistingAlignmentRect == NO
+      if (!hasExistingAlignmentRect
           || !NSEqualRects(solverAlignmentRect, existingAlignmentRect))
         {
           return YES;
@@ -1242,12 +1336,43 @@ BOOL GSAutoLayoutEngineExists = NO;
 
 - (NSRect) alignmentRectForView: (NSView *)view
 {
-  GSCSSolution *solution = [_solver solve];
-  if (![self solverCanSolveAlignmentRectForView: view solution: solution])
+  NSView *parent = [view superview];
+  NSNumber *index = [self indexForView: view];
+  NSNumber *parentIndex = [self indexForView: parent];
+  NSValue *value = index == nil ? nil : [_viewAlignmentRectByViewIndex objectForKey: index];
+  NSValue *parentValue = parentIndex == nil ? nil : [_viewAlignmentRectByViewIndex objectForKey: parentIndex];
+  NSRect rect, parentRect;
+  if (value != nil && parentValue != nil)
     {
-      return NSZeroRect;
+      /* Every solver update records these rectangles. Rebuilding a complete
+         solution for each individual label makes table layout needlessly
+         proportional to all variables in the window. */
+      rect = [value rectValue];
+      parentRect = [parentValue rectValue];
     }
-  return [self solverAlignmentRectForView: view solution: solution];
+  else
+    {
+      GSCSSolution *solution = [_solver solve];
+      if (![self solverCanSolveAlignmentRectForView: view solution: solution])
+        return [view frame];
+      rect = [self solverAlignmentRectForView: view solution: solution];
+      parentRect = [self solverAlignmentRectForView: parent solution: solution];
+    }
+  NSRect bounds = [parent bounds];
+  if ([parent isKindOfClass: [NSClipView class]])
+    bounds.origin = NSZeroPoint;
+  rect.origin.x += NSMinX(bounds) - NSMinX(parentRect);
+  rect.origin.y -= NSMinY(parentRect);
+  if ([parent isFlipped])
+    rect.origin.y += NSMinY(bounds);
+  else
+    rect.origin.y = NSMaxY(bounds) - NSMaxY(rect);
+  return rect;
+}
+
+- (BOOL) hasLayoutForView: (NSView *)view
+{
+  return [self hasConstraintsForView: view];
 }
 
 - (void) addSupportingSolverConstraint: (GSCSConstraint *)supportingConstraint
@@ -1294,7 +1419,7 @@ BOOL GSAutoLayoutEngineExists = NO;
 - (NSNumber *) indexForView: (NSView *)view
 {
   return [_viewIndexByViewHash
-      objectForKey: [NSNumber numberWithUnsignedInteger: [view hash]]];
+      objectForKey: view];
 }
 
 - (NSArray *) constraintsForView: (NSView *)view
@@ -1371,15 +1496,19 @@ BOOL GSAutoLayoutEngineExists = NO;
     {
       return;
     }
+  if (_contentView == contentView)
+    return;
+  if (_contentConstraints != nil)
+    [self removeConstraints: _contentConstraints];
   ASSIGN(_contentView, contentView);
 
   NSRect bounds = [contentView bounds];
   NSLayoutConstraint *left = [self _pinConstraintForView: contentView
                                                attribute: NSLayoutAttributeLeft
-                                                constant: NSMinX(bounds)];
+                                                constant: 0];
   NSLayoutConstraint *bottom = [self _pinConstraintForView: contentView
-                                                 attribute: NSLayoutAttributeBottom
-                                                  constant: NSMinY(bounds)];
+                                                 attribute: NSLayoutAttributeTop
+                                                  constant: 0];
   ASSIGN(_contentWidthConstraint,
          [self _pinConstraintForView: contentView
                            attribute: NSLayoutAttributeWidth
@@ -1389,10 +1518,9 @@ BOOL GSAutoLayoutEngineExists = NO;
                            attribute: NSLayoutAttributeHeight
                             constant: NSHeight(bounds)]);
 
-  [self addConstraint: left];
-  [self addConstraint: bottom];
-  [self addConstraint: _contentWidthConstraint];
-  [self addConstraint: _contentHeightConstraint];
+  ASSIGN(_contentConstraints, ([NSArray arrayWithObjects: left, bottom,
+    _contentWidthConstraint, _contentHeightConstraint, nil]));
+  [self addConstraints: _contentConstraints];
 }
 
 - (BOOL) updateContentViewSize
@@ -1407,20 +1535,116 @@ BOOL GSAutoLayoutEngineExists = NO;
   if ([_contentWidthConstraint constant] != NSWidth(bounds))
     {
       [_contentWidthConstraint setConstant: NSWidth(bounds)];
-      [self updateConstraint: _contentWidthConstraint];
       changed = YES;
     }
   if ([_contentHeightConstraint constant] != NSHeight(bounds))
     {
       [_contentHeightConstraint setConstant: NSHeight(bounds)];
-      [self updateConstraint: _contentHeightConstraint];
       changed = YES;
     }
   return changed;
 }
 
+/* The solver uses one top-down coordinate system for the entire window.
+   Frame-managed views continue to use NSView's springs and struts; only their
+   current geometry is imported, so split/scroll/table layout keeps ownership
+   of those frames. */
+- (void) updateFrameConstraintsForView: (NSView *)view
+{
+  if ([view window] == nil || [view window] != [_contentView window])
+    return;
+  NSRect rect = [view convertRect: [view bounds] toView: _contentView];
+  NSRect bounds = [_contentView bounds];
+  rect.origin.x -= NSMinX(bounds);
+  rect.origin.y = [_contentView isFlipped] ? NSMinY(rect) - NSMinY(bounds)
+                                         : NSMaxY(bounds) - NSMaxY(rect);
+  /* Scrolling changes the presentation of a document, not its layout. Keep
+     document descendants in unscrolled coordinates, otherwise each wheel
+     event replaces the frame constraints of every row in the viewport. */
+  for (NSView *ancestor = [view superview]; ancestor != nil && ancestor != _contentView;
+       ancestor = [ancestor superview])
+    if ([ancestor isKindOfClass: [NSClipView class]])
+      {
+        NSPoint zero = [_contentView convertPoint: NSZeroPoint fromView: ancestor];
+        NSPoint origin = [_contentView convertPoint: [ancestor bounds].origin fromView: ancestor];
+        rect.origin.x += origin.x - zero.x;
+        rect.origin.y += ([_contentView isFlipped] ? 1 : -1) * (origin.y - zero.y);
+      }
+  NSDictionary *old = [_frameConstraintsByView objectForKey: view];
+  if (old != nil && NSEqualRects([[old objectForKey: @"rect"] rectValue], rect))
+    return;
+
+  NSArray *previous = [old objectForKey: @"constraints"];
+  if ([previous count] != 0)
+    {
+      [_solver removeConstraints: previous];
+      [_solverConstraints removeObjectsInArray: previous];
+    }
+  GSLayoutAttribute attributes[] = { GSLayoutAttributeMinX,
+    GSLayoutAttributeMinY, GSLayoutAttributeWidth, GSLayoutAttributeHeight };
+  CGFloat values[] = { NSMinX(rect), NSMinY(rect), NSWidth(rect), NSHeight(rect) };
+  NSMutableArray *constraints = [NSMutableArray array];
+  NSUInteger i;
+  for (i = 0; i < 4; i++)
+    {
+      GSCSConstraint *constraint = [GSCSConstraint constraintWithLeftVariable:
+        [self variableForView: view andAttribute: attributes[i]]
+        operator: GSCSConstraintOperatorEqual rightConstant: values[i]];
+      if (i >= 2)
+        {
+          GSCSStrength *strength = [[GSCSStrength alloc] initWithName: nil strength: GSLayoutFrameSizeStrength];
+          [constraint setStrength: strength];
+          RELEASE(strength);
+        }
+      [constraints addObject: constraint];
+      [self addSolverConstraint: constraint];
+    }
+  [_frameConstraintsByView setObject: [NSDictionary dictionaryWithObjectsAndKeys:
+    [NSValue valueWithRect: rect], @"rect", constraints, @"constraints", nil] forKey: view];
+}
+
+- (void) prepareForLayout
+{
+  if (_preparingLayout || _contentView == nil)
+    return;
+  _preparingLayout = YES;
+  @try
+    {
+      [self updateContentViewSize];
+      FOR_IN(NSView *, view, _trackedViews)
+        if (view != _contentView && [view window] == [_contentView window]
+            && [view translatesAutoresizingMaskIntoConstraints]
+            && [self hasAddedWidthAndHeightConstraintsToView: view])
+          [self updateFrameConstraintsForView: view];
+        else if (![view translatesAutoresizingMaskIntoConstraints]
+            && [self hasAddedWidthAndHeightConstraintsToView: view])
+          [self addIntrinsicContentSizeConstraintsToView: view];
+      END_FOR_IN(_trackedViews);
+      [self updateAlignmentRectsForTrackedViews];
+      /* Window size is a very strong preference, rather than a required
+         equation: required content minimums may need a larger window (for
+         example when the system font or control metrics differ from a XIB). */
+      NSRect solved = [self solverAlignmentRectForView: _contentView solution: [_solver solve]];
+      NSSize size = [_contentView bounds].size;
+      if (fabs(size.width - solved.size.width) > .01
+          || fabs(size.height - solved.size.height) > .01)
+        [[_contentView window] setContentSize: solved.size];
+    }
+  @finally
+    {
+      _preparingLayout = NO;
+    }
+}
+
 - (void) dealloc
 {
+    FOR_IN(NSLayoutConstraint *, constraint, [_constraintsByAutoLayoutConstaintHash keyEnumerator])
+      [constraint removeObserver: self forKeyPath: @"constant"];
+      [constraint removeObserver: self forKeyPath: @"priority"];
+    END_FOR_IN([_constraintsByAutoLayoutConstaintHash keyEnumerator]);
+    RELEASE(_contentConstraints);
+    RELEASE(_frameConstraintsByView);
+    RELEASE(_intrinsicConstraintsByView);
     RELEASE(_contentView);
     RELEASE(_contentWidthConstraint);
     RELEASE(_contentHeightConstraint);

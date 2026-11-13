@@ -1935,6 +1935,14 @@ static SEL getSel;
   newSize.height = nr * (_cellSize.height + _intercell.height) - _intercell.height;
   [super setFrameSize: newSize];
 }
+
+- (NSSize) intrinsicContentSize
+{
+  NSInteger columns = MAX(1, _numCols);
+  NSInteger rows = MAX(1, _numRows);
+  return NSMakeSize(columns * (_cellSize.width + _intercell.width) - _intercell.width,
+                    rows * (_cellSize.height + _intercell.height) - _intercell.height);
+}
   
 - (void) sizeToFit
 {

@@ -76,7 +76,7 @@ main(int argc, const char **argv)
       [[[sub leftAnchor] constraintEqualToAnchor: [content leftAnchor]
                                         constant: 20.0] setActive: YES];
       [[[sub bottomAnchor] constraintEqualToAnchor: [content bottomAnchor]
-                                          constant: 10.0] setActive: YES];
+                                          constant: -10.0] setActive: YES];
       [[[sub widthAnchor] constraintEqualToAnchor: [content widthAnchor]
                                          constant: -50.0] setActive: YES];
       [[[sub heightAnchor] constraintEqualToAnchor: [content heightAnchor]
@@ -92,7 +92,7 @@ main(int argc, const char **argv)
       [[[other leftAnchor] constraintEqualToAnchor: [sub leftAnchor]
                                           constant: 10.0] setActive: YES];
       [[[other bottomAnchor] constraintEqualToAnchor: [sub bottomAnchor]
-                                            constant: 10.0] setActive: YES];
+                                            constant: -10.0] setActive: YES];
       [[[other widthAnchor] constraintEqualToAnchor: [sub widthAnchor]
                                            constant: -40.0] setActive: YES];
       [[[other heightAnchor] constraintEqualToAnchor: [sub heightAnchor]

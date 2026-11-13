@@ -44,7 +44,7 @@ main(int argc, const char **argv)
                                          constant: 20.0];
       NSLayoutConstraint *bottom =
         [[sub bottomAnchor] constraintEqualToAnchor: [content bottomAnchor]
-                                           constant: 10.0];
+                                           constant: -10.0];
       [width setActive: YES];
       [height setActive: YES];
       [left setActive: YES];

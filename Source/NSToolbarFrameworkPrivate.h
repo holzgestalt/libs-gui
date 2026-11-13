@@ -121,4 +121,7 @@
 - (NSMenuView*) removeMenuView;
 @end
 
+/* Preferred dimensions of a frame-positioned toolbar view. */
+extern NSSize GSToolbarConstrainedSize(NSView *view, NSSize size);
+
 #endif // _NSToolbarFrameworkPrivate_h_INCLUDE
