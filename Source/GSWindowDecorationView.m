@@ -423,6 +423,11 @@ static inline NSRect RectWithSizeScaledByFactor(NSRect aRect, CGFloat factor)
     [GSServerForWindow(window) titlewindow: title : windowNumber];
 }
 
+- (NSUInteger) backendWindowStyleMask { return [window styleMask]; }
+- (BOOL) orderNativeWindow: (NSInteger)place relativeTo: (NSInteger)other { return NO; }
+- (BOOL) placeNativeWindow: (NSRect)frame { return NO; }
+- (BOOL) miniaturizeNativeWindow { return NO; }
+
 - (void) setWindowNumber: (int)theWindowNumber
 {
   windowNumber = theWindowNumber;

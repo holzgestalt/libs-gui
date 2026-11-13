@@ -91,7 +91,7 @@ GS_BUILTIN_CLASS = GSGNUstepTheme
 GS_STATIC_GTK4 = 0
 else ifeq ($(GNUSTEP_BUILTIN_THEME),GTK4Native)
 GTK4_NATIVE_DIR ?= $(abspath ../../../native/GTK4Native)
-libgnustep-gui_OBJC_FILES += $(GTK4_NATIVE_DIR)/GTK4NativeTheme.m $(GTK4_NATIVE_DIR)/GTK4NativeMenu.m $(GTK4_NATIVE_DIR)/GTK4NativeFilePanel.m
+libgnustep-gui_OBJC_FILES += $(GTK4_NATIVE_DIR)/GTK4NativeTheme.m $(GTK4_NATIVE_DIR)/GTK4NativeMenu.m $(GTK4_NATIVE_DIR)/GTK4NativeFilePanel.m $(GTK4_NATIVE_DIR)/GTK4NativeWindow.m
 libgnustep-gui_C_FILES += $(GTK4_NATIVE_DIR)/GTK4Renderer.c
 GS_BUILTIN_CLASS = GTK4NativeTheme
 GS_STATIC_GTK4 = 1

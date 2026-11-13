@@ -1048,7 +1048,7 @@ many times.
 
   _windowNum = [srv window: _frame
                     : _backingType
-                    : _styleMask
+                    : [_wv backendWindowStyleMask]
                     : [_screen screenNumber]];
   if (_windowNum == 0)
     {
@@ -1993,7 +1993,8 @@ titleWithRepresentedFilename(NSString *representedFilename)
       otherWin = -1;
     }
 
-  [srv orderwindow: place : otherWin : _windowNum];
+  if (![_wv orderNativeWindow: place relativeTo: otherWin])
+    [srv orderwindow: place : otherWin : _windowNum];
   if (display)
     {
       [self display];
@@ -2396,7 +2397,8 @@ titleWithRepresentedFilename(NSString *representedFilename)
 {
   if (_windowNum)
     {
-      [GSServerForWindow(self) placewindow: frameRect : _windowNum];
+      if (![_wv placeNativeWindow: frameRect])
+        [GSServerForWindow(self) placewindow: frameRect : _windowNum];
     }
   else
     {
@@ -3465,7 +3467,8 @@ checkCursorRectanglesExited(NSView *theView,  NSEvent *theEvent, NSPoint lastPoi
       RELEASE(v);
     }
   [self _lossOfKeyOrMainWindow];
-  [srv miniwindow: _windowNum];
+  if (![_wv miniaturizeNativeWindow])
+    [srv miniwindow: _windowNum];
   _f.visible = NO;
 
   /*
