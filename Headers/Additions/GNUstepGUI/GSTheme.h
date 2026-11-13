@@ -263,6 +263,13 @@
 @class GSDrawTiles;
 @class GSTitleView;
 
+@protocol GSNativeTableView <NSObject>
+- (BOOL) update;
+- (void) reloadData;
+- (void) scrollRowToVisible: (NSInteger)row;
+- (void) invalidate;
+@end
+
 APPKIT_EXPORT	NSString	*GSSwitch;
 APPKIT_EXPORT   NSString        *GSRadio;
 
@@ -539,6 +546,11 @@ APPKIT_EXPORT_CLASS
  * </p>
  */
 - (void) activate;
+
+/** Called after AppKit connects to its display server, before it creates the
+ * initial graphics context and fonts. Native providers can defer resources
+ * that require a connected backend when the theme was requested earlier. */
+- (void) displayServerDidConnect;
 
 /**
  * Returns the names of the theme's authors.
@@ -1325,6 +1337,23 @@ APPKIT_EXPORT_CLASS
 		  inView: (NSView *)view
 	       withItems: (NSArray *)items
 	    selectedItem: (NSTabViewItem *)item;
+
+/** Optional whole-widget scroller drawing, including disabled controls.
+ * Return NO to retain the standard part-based drawing path. */
+- (BOOL) drawNativeScroller: (NSScroller *)scroller dirtyRect: (NSRect)rect;
+
+/** Optional interactive table peer. The table retains the returned object.
+ * Peers implement update (BOOL), reloadData, scrollRowToVisible:, invalidate.
+ * Returning nil preserves the AppKit implementation. No platform widget types
+ * are exposed through this interface. */
+- (id<GSNativeTableView>) nativeTableViewForTableView: (NSTableView *)table;
+
+/** Optional geometry matching whole-widget rendering. Return YES even for
+ * absent parts (with NSZeroRect), or NO to use the standard geometry.
+ * Coordinates are in the scroller's flipped bounds. */
+- (BOOL) getScrollerRect: (NSRect *)rect
+               forPart: (NSScrollerPart)part
+            inScroller: (NSScroller *)scroller;
 
 - (void) drawScrollerRect: (NSRect)rect
 		   inView: (NSView *)view

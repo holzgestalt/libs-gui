@@ -207,8 +207,34 @@
 
 - (void) resolve
 {
+  if (_updateDepth > 0)
+    {
+      _needsResolve = YES;
+      return;
+    }
+  _needsResolve = NO;
   [self optimize: [_tableau objective]];
   [self setExternalVariables];
+}
+
+- (void) beginUpdates
+{
+  _updateDepth++;
+}
+
+- (void) forgetUnusedVariable: (GSCSVariable *)variable
+{
+  if ([_tableau rowExpressionForVariable: variable] == nil
+      && ![_tableau hasColumnForVariable: variable])
+    [_externalVariables removeObject: variable];
+}
+
+- (void) endUpdates
+{
+  NSAssert(_updateDepth > 0, @"Unbalanced solver updates");
+  _updateDepth--;
+  if (_updateDepth == 0 && _needsResolve)
+    [self resolve];
 }
 
 - (void) addConstraint: (GSCSConstraint *)constraint

@@ -114,6 +114,13 @@ int main(void)
   PASS([table rowForView: AUTORELEASE([NSView new])] == -1
     && [table viewAtColumn: 0 row: 20 makeIfNecessary: YES] == nil,
     "unrelated views and invalid rows do not resolve to row zero")
+  [table reloadData];
+  NSInteger before = source->added;
+  [table lockFocus];
+  [table drawRect: NSMakeRect(0,160,300,10)];
+  [table unlockFocus];
+  PASS(source->added == before && [table rowViewAtRow: 0 makeIfNecessary: NO] == nil,
+    "background-only repaint below the data does not instantiate all rows")
   END_SET("NSTableView view-based rows")
   return 0;
 }

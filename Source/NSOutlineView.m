@@ -862,6 +862,7 @@ static NSImage *unexpandable  = nil;
 {
   const SEL sel = @selector(outlineView:willDisplayCell:forTableColumn:item:);
 
+  _cachedRowOrigins = 0;
   if (_delegate)
     [nc removeObserver: _delegate name: nil object: self];
   _delegate = anObject;
@@ -1072,23 +1073,9 @@ static NSImage *unexpandable  = nil;
 
 - (void) drawRect: (NSRect)aRect
 {
-  NSInteger index = 0;
-
-  if (_autoResizesOutlineColumn)
-    {
-      CGFloat widest = 0;
-      for (index = 0; index < _numberOfRows; index++)
-	{
-	  CGFloat offset = [self levelForRow: index] *
-	    [self indentationPerLevel];
-	  NSRect drawingRect = [self frameOfCellAtColumn: 0
-				     row: index];
-	  CGFloat length = drawingRect.size.width + offset;
-	  if (widest < length) widest = length;
-	}
-      // [_outlineTableColumn setWidth: widest];
-    }
-
+  /* Column sizing is handled separately. Scanning every row here serves no
+     drawing purpose and becomes quadratic with delegate-provided heights,
+     since frameOfCellAtColumn:row: sums the heights of preceding rows. */
   [super drawRect: aRect];
 }
 

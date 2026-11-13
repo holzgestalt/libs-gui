@@ -800,6 +800,8 @@ static NSNotificationCenter *nc = nil;
 
       key = [NSString stringWithFormat: @"NSWindow Frame %@", name];
       [[NSUserDefaults standardUserDefaults] removeObjectForKey: key];
+      [[NSUserDefaults standardUserDefaults] removeObjectForKey:
+        [key stringByAppendingString: @" Scale"]];
     }
 }
 
@@ -5166,6 +5168,8 @@ current key view.<br />
   obj = [self stringWithSavedFrame];
   key = [NSString stringWithFormat: @"NSWindow Frame %@", name];
   [defs setObject: obj forKey: key];
+  [defs setFloat: [self userSpaceScaleFactor]
+         forKey: [key stringByAppendingString: @" Scale"]];
 }
 
 - (BOOL) setFrameAutosaveName: (NSString*)name
@@ -5374,6 +5378,26 @@ current key view.<br />
       return NO;
     }
 
+  CGFloat savedScale = [defs floatForKey:
+    [key stringByAppendingString: @" Scale"]];
+  /* Legacy records were written before desktop scaling was detected. */
+  if (savedScale <= 0) savedScale = 1.0;
+  CGFloat scale = [self userSpaceScaleFactor] / savedScale;
+  if (scale != 1.0)
+    {
+      NSScanner *scanner = [NSScanner scannerWithString: obj];
+      int x, y, width, height;
+      if ([scanner scanInt: &x] && [scanner scanInt: &y]
+        && [scanner scanInt: &width] && [scanner scanInt: &height])
+        {
+          /* Frame strings use device pixels. Retain logical size and the
+           * top edge; leave screen geometry for the existing parser. */
+          obj = [NSString stringWithFormat: @"%d %d %d %d %@", x,
+            y - (int)round(height * (scale - 1.0)),
+            (int)round(width * scale), (int)round(height * scale),
+            [obj substringFromIndex: [scanner scanLocation]]];
+        }
+    }
   [self setFrameFromString: obj];
   return YES;
 }

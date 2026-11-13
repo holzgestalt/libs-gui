@@ -84,6 +84,7 @@
 
 #import "GSIconManager.h"
 #import "GNUstepGUI/GSDisplayServer.h"
+#import "GNUstepGUI/GSTheme.h"
 #import "GNUstepGUI/GSServicesManager.h"
 #import "GSGuiPrivate.h"
 #import "GNUstepGUI/GSInfoPanel.h"
@@ -905,6 +906,8 @@ static BOOL _isAutolaunchChecked = NO;
   srv = [GSDisplayServer serverWithAttributes: nil];
   RETAIN(srv);
   [GSDisplayServer setCurrentServer: srv];
+
+  [[GSTheme theme] displayServerDidConnect];
 
   /* Create a default context with the attributes of the main screen.  */
   attributes = [[NSScreen mainScreen] deviceDescription];

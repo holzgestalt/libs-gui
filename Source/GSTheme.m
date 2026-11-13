@@ -347,6 +347,7 @@ GSStringFromImageFrameStyle(NSImageFrameStyle type)
 @end
 
 @implementation GSTheme
+- (void) displayServerDidConnect {}
 - (BOOL) usesIndividualDocumentSaveAlerts { return NO; }
 - (BOOL) runNativeDocumentSaveAlertWithTitle: (NSString *)title
                                   message: (NSString *)message
@@ -365,6 +366,22 @@ GSStringFromImageFrameStyle(NSImageFrameStyle type)
   return NO;
 }
 
+- (BOOL) drawNativeScroller: (NSScroller *)scroller dirtyRect: (NSRect)rect
+{
+  return NO;
+}
+
+- (id<GSNativeTableView>) nativeTableViewForTableView: (NSTableView *)table
+{
+  return nil;
+}
+
+- (BOOL) getScrollerRect: (NSRect *)rect
+               forPart: (NSScrollerPart)part
+            inScroller: (NSScroller *)scroller
+{
+  return NO;
+}
 
 static GSTheme			*defaultTheme = nil;
 static GSTheme			*theTheme = nil;

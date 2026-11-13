@@ -271,6 +271,15 @@ static NSMutableArray *screenArray = nil;
  */
 - (NSDictionary*) deviceDescription
 {
+  if (_reserved != 0)
+    {
+      NSSize resolution = [[(NSDictionary*)_reserved objectForKey: NSDeviceResolution] sizeValue];
+      if (resolution.width != 72.0 * [self userSpaceScaleFactor])
+        {
+          [(id)_reserved release];
+          _reserved = 0;
+        }
+    }
   if (_reserved == 0)
     {
       NSMutableDictionary	*devDesc;

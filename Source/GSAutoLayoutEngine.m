@@ -672,7 +672,7 @@ static const CGFloat GSLayoutFrameSizeStrength = 1.0e9;
 
 - (NSInteger) registerView: (NSView *)view
 {
-  NSUInteger viewIndex = [_trackedViews count];
+  NSUInteger viewIndex = _viewCounter++;
   [_trackedViews addObject: view];
   [_viewIndexByViewHash
     setObject: [NSNumber numberWithUnsignedInteger: viewIndex]
@@ -1225,6 +1225,8 @@ static const CGFloat GSLayoutFrameSizeStrength = 1.0e9;
 
 - (void) updateAlignmentRectsForTrackedViews
 {
+  if (_updateDepth > 0)
+    return;
   GSCSSolution *solution = [_solver solve];
   [self updateAlignmentRectsForTrackedViewsForSolution: solution];
 }
@@ -1610,16 +1612,27 @@ static const CGFloat GSLayoutFrameSizeStrength = 1.0e9;
   _preparingLayout = YES;
   @try
     {
-      [self updateContentViewSize];
-      FOR_IN(NSView *, view, _trackedViews)
-        if (view != _contentView && [view window] == [_contentView window]
-            && [view translatesAutoresizingMaskIntoConstraints]
-            && [self hasAddedWidthAndHeightConstraintsToView: view])
-          [self updateFrameConstraintsForView: view];
-        else if (![view translatesAutoresizingMaskIntoConstraints]
-            && [self hasAddedWidthAndHeightConstraintsToView: view])
-          [self addIntrinsicContentSizeConstraintsToView: view];
-      END_FOR_IN(_trackedViews);
+      /* A scroll moves many frame-managed views in window coordinates. Import
+         their frames together instead of optimizing the entire window after
+         each removed/added coordinate constraint. */
+      [_solver beginUpdates];
+      @try
+        {
+          [self updateContentViewSize];
+          FOR_IN(NSView *, view, _trackedViews)
+            if (view != _contentView && [view window] == [_contentView window]
+                && [view translatesAutoresizingMaskIntoConstraints]
+                && [self hasAddedWidthAndHeightConstraintsToView: view])
+              [self updateFrameConstraintsForView: view];
+            else if (![view translatesAutoresizingMaskIntoConstraints]
+                && [self hasAddedWidthAndHeightConstraintsToView: view])
+              [self addIntrinsicContentSizeConstraintsToView: view];
+          END_FOR_IN(_trackedViews);
+        }
+      @finally
+        {
+          [_solver endUpdates];
+        }
       [self updateAlignmentRectsForTrackedViews];
       /* Window size is a very strong preference, rather than a required
          equation: required content minimums may need a larger window (for
@@ -1634,6 +1647,48 @@ static const CGFloat GSLayoutFrameSizeStrength = 1.0e9;
     {
       _preparingLayout = NO;
     }
+}
+
+- (void) beginUpdates
+{
+  _updateDepth++;
+  [_solver beginUpdates];
+}
+
+- (void) forgetDetachedView: (NSView *)view
+{
+  NSNumber *index = [self indexForView: view];
+  if (index == nil || [view window] == [_contentView window]
+      || [self hasConstraintsForView: view])
+    return;
+  [self removeInternalConstraintsForView: view];
+  NSString *prefix = [NSString stringWithFormat: @"view%@.", index];
+  NSArray *names = [NSArray arrayWithObjects: @"left", @"right", @"top",
+    @"bottom", @"leading", @"trailing", @"width", @"height", @"centerX",
+    @"centerY", @"baseline", @"firstBaseline", @"minX", @"minY", @"maxX",
+    @"maxY", @"baselineOffsetFromBottom", @"firstBaselineOffsetFromTop",
+    @"intrinsicContentSize.width", @"intrinsicContentSize.height", nil];
+  FOR_IN(NSString *, name, names)
+    NSString *key = [prefix stringByAppendingString: name];
+    GSCSVariable *variable = [_variablesByKey objectForKey: key];
+    if (variable != nil)
+      {
+        [_solver forgetUnusedVariable: variable];
+        [_variablesByKey removeObjectForKey: key];
+      }
+  END_FOR_IN(names);
+  [_viewAlignmentRectByViewIndex removeObjectForKey: index];
+  [_constraintsByViewIndex removeObjectForKey: index];
+  [_viewIndexByViewHash removeObjectForKey: view];
+  [_trackedViews removeObjectIdenticalTo: view];
+}
+
+- (void) endUpdates
+{
+  NSAssert(_updateDepth > 0, @"Unbalanced layout engine updates");
+  [_solver endUpdates];
+  if (--_updateDepth == 0)
+    [self updateAlignmentRectsForTrackedViews];
 }
 
 - (void) dealloc

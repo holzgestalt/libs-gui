@@ -61,6 +61,7 @@ extern BOOL GSAutoLayoutEngineExists;
       call.  A group is either all additions or all removals. */
    NSMutableArray *_batchedSolverConstraints;
    int _batchDepth;
+   NSUInteger _updateDepth;
 }
 
 - (instancetype) initWithSolver: (GSCassowarySolver*)solver;
@@ -76,6 +77,9 @@ extern BOOL GSAutoLayoutEngineExists;
 - (NSRect) alignmentRectForView: (NSView *)view;
 - (BOOL) hasLayoutForView: (NSView *)view;
 - (void) prepareForLayout;
+- (void) beginUpdates;
+- (void) endUpdates;
+- (void) forgetDetachedView: (NSView *)view;
 
 - (NSArray *) constraintsForView: (NSView *)view;
 

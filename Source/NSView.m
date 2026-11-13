@@ -471,6 +471,7 @@ GSSetDragTypes(NSView* obj, NSArray *types)
 - (void) _viewWillMoveToWindow: (NSWindow*)newWindow
 {
   BOOL old_allocate_gstate;
+  GSAutoLayoutEngine *oldLayoutEngine = [_window _layoutEngine];
 
   [self viewWillMoveToWindow: newWindow];
   if (_coordinates_valid)
@@ -548,6 +549,7 @@ GSSetDragTypes(NSView* obj, NSArray *types)
             }
         }
     }
+  [oldLayoutEngine forgetDetachedView: self];
 }
 
 - (void) _viewWillMoveToSuperview: (NSView*)newSuper

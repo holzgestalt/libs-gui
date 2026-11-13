@@ -3372,6 +3372,12 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
     }
   
   /* Draw visible cells */
+  /* An invalidated strip below the last row contains only background. Do not
+     interpret its two missing row indexes as a request to draw every row. */
+  aRect = NSIntersectionRect(aRect, NSUnionRect([tableView rectOfRow: 0],
+    [tableView rectOfRow: numberOfRows - 1]));
+  if (NSIsEmptyRect(aRect))
+    return;
   /* Using rowAtPoint: here calls them only twice per drawn rect */
   startingRow = [tableView rowAtPoint: NSMakePoint (0, NSMinY (aRect))];
   endingRow   = [tableView rowAtPoint: NSMakePoint (0, NSMaxY (aRect))];
