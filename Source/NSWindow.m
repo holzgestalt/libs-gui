@@ -3757,6 +3757,9 @@ checkCursorRectanglesExited(NSView *theView,  NSEvent *theEvent, NSPoint lastPoi
 {
   if (_firstResponder == aResponder)
     {
+      if ([aResponder isKindOfClass: viewClass]
+          && [(NSView *)aResponder isDescendantOf: _contentView])
+        [_wv focusAppKitContent];
       return YES;
     }
 
@@ -3794,6 +3797,9 @@ checkCursorRectanglesExited(NSView *theView,  NSEvent *theEvent, NSPoint lastPoi
       [_firstResponder becomeFirstResponder];
     }
 
+  if ([_firstResponder isKindOfClass: viewClass]
+      && [(NSView *)_firstResponder isDescendantOf: _contentView])
+    [_wv focusAppKitContent];
   return YES;
 }
 
@@ -4190,6 +4196,13 @@ checkCursorRectanglesExited(NSView *theView,  NSEvent *theEvent, NSPoint lastPoi
       NSDebugLLog(@"NSEvent", @"Discard (window ignoring mouse) %@", theEvent);
       return;
     }
+
+  // Native hosts do not receive pointer events delivered directly to the
+  // backend child. Hand focus back even when the clicked editor is already
+  // AppKit's first responder (or a button deliberately leaves it unchanged).
+  if (type == NSLeftMouseDown || type == NSRightMouseDown
+      || type == NSOtherMouseDown)
+    [_wv focusAppKitContent];
 
   switch (type)
     {

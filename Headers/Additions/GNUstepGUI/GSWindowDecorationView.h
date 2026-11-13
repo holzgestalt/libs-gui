@@ -97,6 +97,8 @@ APPKIT_EXPORT_CLASS
 - (BOOL) orderNativeWindow: (NSInteger)place relativeTo: (NSInteger)other;
 - (BOOL) placeNativeWindow: (NSRect)frame;
 - (BOOL) miniaturizeNativeWindow;
+/** Relinquish native control focus before input enters the AppKit content. */
+- (void) focusAppKitContent;
 
 /*
 Called when the backend window is created or destroyed. When it's destroyed,
