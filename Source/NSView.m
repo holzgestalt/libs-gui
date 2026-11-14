@@ -32,6 +32,37 @@
 */
 
 #import "config.h"
+#import <Foundation/NSMapTable.h>
+#import "../Headers/Additions/GNUstepGUI/GSNativeView.h"
+
+static id<GSNativeEventSource> nativeEventSource;
+id<GSNativeEventSource> GSSetNativeEventSource(id<GSNativeEventSource> source)
+{ id<GSNativeEventSource> previous=nativeEventSource; nativeEventSource=source; return previous; }
+NSEvent *GSNextNativeEvent(NSUInteger mask, BOOL dequeue)
+{ return [nativeEventSource nativeEventMatchingMask:mask dequeue:dequeue]; }
+static NSMapTable *nativeViewPeers;
+static NSView *nativeDrawingView;
+static NSRect nativeDrawingRect;
+void GSDrawNativeView(NSView *view, NSRect rect)
+{
+  NSView *previous = nativeDrawingView;
+  NSRect previousRect = nativeDrawingRect;
+  nativeDrawingView = view; nativeDrawingRect = rect;
+  @try { [view drawRect:rect]; }
+  @finally { nativeDrawingView = previous; nativeDrawingRect = previousRect; }
+}
+void GSSetNativeViewPeer(NSView *view, id<GSNativeViewPeer> peer)
+{
+  if (!view) return;
+  if (!nativeViewPeers && peer)
+    nativeViewPeers = [[NSMapTable alloc] initWithKeyOptions:NSPointerFunctionsWeakMemory | NSPointerFunctionsObjectPointerPersonality
+      valueOptions:NSPointerFunctionsWeakMemory capacity:32];
+  if (peer) [nativeViewPeers setObject:peer forKey:view];
+  else [nativeViewPeers removeObjectForKey:view];
+}
+id<GSNativeViewPeer> GSNativeViewPeerForView(NSView *view)
+{ return [nativeViewPeers objectForKey:view]; }
+
 #include <math.h>
 #include <float.h>
 
@@ -2117,6 +2148,9 @@ convert_rect_using_matrices(NSRect aRect, NSAffineTransform *matrix1,
  */
 - (void) resizeSubviewsWithOldSize: (NSSize)oldSize
 {
+  id<GSNativeViewPeer> peer = GSNativeViewPeerForView(self);
+  if ([peer ownsLayoutForNativeView:self])
+    { [peer layoutNativeView:self]; return; }
   if (_rFlags.has_subviews)
     {
       id e, o;
@@ -2739,6 +2773,14 @@ static void autoresize(CGFloat oldContainerSize,
 - (void) displayRectIgnoringOpacity: (NSRect)aRect 
                           inContext: (NSGraphicsContext *)context
 {
+  id<GSNativeViewPeer> nativePeer = GSNativeViewPeerForView(self);
+  if (nativePeer && (context == nil || context == [_window graphicsContext]))
+    {
+      [nativePeer invalidateNativeView:self inRect:aRect];
+      _invalidRect = NSZeroRect;
+      _rFlags.needs_display = NO;
+      return;
+    }
   NSGraphicsContext *wContext;
   BOOL flush = NO;
   BOOL subviewNeedsDisplay = NO;
@@ -2932,6 +2974,12 @@ static void autoresize(CGFloat oldContainerSize,
 
 - (void) getRectsBeingDrawn: (const NSRect **)rects count: (NSInteger *)count
 {
+  if (nativeDrawingView == self)
+    {
+      if (rects) *rects = &nativeDrawingRect;
+      if (count) *count = NSIsEmptyRect(nativeDrawingRect) ? 0 : 1;
+      return;
+    }
   // FIXME
   static NSRect rect;
 
@@ -3037,6 +3085,14 @@ in the main thread.
     return;
 
   invalidRect = [v rectValue];
+  id<GSNativeViewPeer> nativePeer = GSNativeViewPeerForView(self);
+  if (nativePeer)
+    {
+      [nativePeer invalidateNativeView:self inRect:NSIntersectionRect(invalidRect, _bounds)];
+      _invalidRect = NSZeroRect;
+      _rFlags.needs_display = NO;
+      return;
+    }
 
   /*
    *	Limit to bounds, combine with old _invalidRect, and then check to see
@@ -5437,6 +5493,9 @@ static NSView* findByTag(NSView *view, NSInteger aTag, NSUInteger *level)
 
 - (void) layout
 {
+  id<GSNativeViewPeer> peer = GSNativeViewPeerForView(self);
+  if ([peer ownsLayoutForNativeView:self])
+    { _needsLayout = NO; [peer layoutNativeView:self]; return; }
   NSViewController *vc = [NSViewController _viewControllerForView: self];
   GSAutoLayoutEngine *engine;
 
@@ -5581,6 +5640,9 @@ static NSView* findByTag(NSView *view, NSInteger aTag, NSUInteger *level)
 
 - (void) _layoutViewAndSubViews
 {
+  id<GSNativeViewPeer> peer = GSNativeViewPeerForView(self);
+  if ([peer ownsLayoutForNativeView:self])
+    { _needsLayout = NO; [peer layoutNativeView:self]; return; }
   if (self == [[self window] contentView])
     [[self _layoutEngine] prepareForLayout];
   if (_needsLayout)
@@ -5631,6 +5693,9 @@ static NSView* findByTag(NSView *view, NSInteger aTag, NSUInteger *level)
 // content view size in the engine and lay the constrained subtree out again.
 - (void) _autoLayoutContentViewResized
 {
+  id<GSNativeViewPeer> peer = GSNativeViewPeerForView(self);
+  if ([peer ownsLayoutForNativeView:self])
+    { [peer layoutNativeView:self]; return; }
   NSWindow *window = [self window];
   if (window == nil || [window contentView] != self)
     {

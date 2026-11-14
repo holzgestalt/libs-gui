@@ -32,6 +32,7 @@
 */
 
 #import "config.h"
+#import "../Headers/Additions/GNUstepGUI/GSNativeView.h"
 #include <math.h>
 #include <float.h>
 
@@ -3759,7 +3760,10 @@ checkCursorRectanglesExited(NSView *theView,  NSEvent *theEvent, NSPoint lastPoi
     {
       if ([aResponder isKindOfClass: viewClass]
           && [(NSView *)aResponder isDescendantOf: _contentView])
-        [_wv focusAppKitContent];
+        {
+          if (![GSNativeViewPeerForView((NSView *)aResponder) focusNativeView:(NSView *)aResponder])
+            [_wv focusAppKitContent];
+        }
       return YES;
     }
 
@@ -3799,7 +3803,10 @@ checkCursorRectanglesExited(NSView *theView,  NSEvent *theEvent, NSPoint lastPoi
 
   if ([_firstResponder isKindOfClass: viewClass]
       && [(NSView *)_firstResponder isDescendantOf: _contentView])
-    [_wv focusAppKitContent];
+    {
+      if (![GSNativeViewPeerForView((NSView *)_firstResponder) focusNativeView:(NSView *)_firstResponder])
+        [_wv focusAppKitContent];
+    }
   return YES;
 }
 
