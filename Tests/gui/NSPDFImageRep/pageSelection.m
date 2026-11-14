@@ -1,4 +1,5 @@
 #import "Testing.h"
+#import "../../../Source/config.h"
 #import <Foundation/NSArray.h>
 #import <Foundation/NSAutoreleasePool.h>
 #import <Foundation/NSData.h>
@@ -90,28 +91,52 @@ main(int argc, const char **argv)
       PASS([rep currentPage] == 1, "setCurrentPage: 1 selects the second page");
       PASS(NSEqualSizes([rep size], NSMakeSize(400, 300)),
         "size follows the selected page");
+#if HAVE_POPPLER
+      PASS([rep pixelsWide] == NSImageRepMatchesDevice
+        && [rep pixelsHigh] == NSImageRepMatchesDevice,
+        "page selection preserves device-independent rendering");
+#else
       PASS([rep pixelsWide] == 400 && [rep pixelsHigh] == 300,
         "the pixel size follows the selected page");
+#endif
       PASS(NSEqualRects([rep bounds], NSMakeRect(0, 0, 400, 300)),
         "bounds follow the selected page");
 
       [rep setCurrentPage: 2];
       PASS(NSEqualSizes([rep size], NSMakeSize(100, 50)),
         "the third page is 100 by 50");
+#if HAVE_POPPLER
+      PASS([rep pixelsWide] == NSImageRepMatchesDevice
+        && [rep pixelsHigh] == NSImageRepMatchesDevice,
+        "page selection preserves device-independent rendering");
+#else
       PASS([rep pixelsWide] == 100 && [rep pixelsHigh] == 50,
         "the pixel size of the third page is 100 by 50");
+#endif
 
       [rep setCurrentPage: 3];
       PASS([rep currentPage] == 2,
         "setCurrentPage: past the last page selects the last page");
+#if HAVE_POPPLER
+      PASS([rep pixelsWide] == NSImageRepMatchesDevice
+        && [rep pixelsHigh] == NSImageRepMatchesDevice,
+        "page selection preserves device-independent rendering");
+#else
       PASS([rep pixelsWide] == 100 && [rep pixelsHigh] == 50,
         "the pixel size stays on the last page");
+#endif
 
       [rep setCurrentPage: -1];
       PASS([rep currentPage] == 0,
         "setCurrentPage: below zero selects the first page");
+#if HAVE_POPPLER
+      PASS([rep pixelsWide] == NSImageRepMatchesDevice
+        && [rep pixelsHigh] == NSImageRepMatchesDevice,
+        "page selection preserves device-independent rendering");
+#else
       PASS([rep pixelsWide] == 200 && [rep pixelsHigh] == 100,
         "the pixel size returns to the first page");
+#endif
     }
 
   END_SET("NSPDFImageRep page selection")

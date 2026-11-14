@@ -27,6 +27,7 @@
 #include "config.h"
 #include <string.h>
 #include <math.h>
+#include <limits.h>
 
 #import <Foundation/NSArray.h>
 #import <Foundation/NSBundle.h>
@@ -1182,7 +1183,13 @@ repd_for_rep(NSArray *_reps, NSImageRep *rep)
 
   // Select a rep
 
-  rep = [self bestRepresentationForRect: dstRect
+  NSRect selectionRect = dstRect;
+  if (srcRect.size.width > 0 && srcRect.size.height > 0)
+    {
+      selectionRect.size.width *= imgSize.width / srcRect.size.width;
+      selectionRect.size.height *= imgSize.height / srcRect.size.height;
+    }
+  rep = [self bestRepresentationForRect: selectionRect
 				context: ctxt
 				  hints: hints];
   if (rep == nil)
@@ -1196,10 +1203,13 @@ repd_for_rep(NSArray *_reps, NSImageRep *rep)
    *
    * Custom image reps draw through a delegate and can produce different output
    * on each draw, so they must not be cached; a cache would freeze their first
-   * drawing.
+   * drawing. Device-independent reps must also bypass this cache, which
+   * otherwise rasterizes them at 72 dpi and reuses that raster at every scale.
    */
   if (_cacheMode != NSImageCacheNever &&
       ![rep isKindOfClass: customClass] &&
+      !([rep pixelsWide] == NSImageRepMatchesDevice
+        && [rep pixelsHigh] == NSImageRepMatchesDevice) &&
       [ctxt supportsDrawGState])
     {
       NSCachedImageRep *cache = [self _doImageCache: rep];
@@ -1776,37 +1786,78 @@ static NSSize GSResolutionOfImageRep(NSImageRep *rep)
 				   context: (NSGraphicsContext *)context
 				     hints: (NSDictionary *)deviceDescription
 {
-  NSArray *reps = [self _bestRepresentationsForDevice: deviceDescription];
-  const NSSize desiredSize = rect.size;
+  NSMutableArray *reps = [self _representationsWithCachedImages: NO];
+  NSSize desiredSize = rect.size;
   NSImageRep *bestRep = nil;
+  NSImageRep *vectorRep = nil;
+  NSImageRep *fallback = nil;
+  CGFloat bestArea = CGFLOAT_MAX;
+  CGFloat fallbackCoverage = -1;
+  NSEnumerator *enumerator;
+  NSImageRep *rep;
 
-  // Pick the smallest rep that is greater than or equal to the
-  // desired size.
-
-  {
-    NSSize bestSize = NSMakeSize(CGFLOAT_MAX, CGFLOAT_MAX);
-    NSImageRep *rep;
-    NSEnumerator *enumerator = [reps objectEnumerator];   
-    while ((rep = [enumerator nextObject]) != nil)
-      {
-	const NSSize repSize = [rep size];
-	if ((repSize.width >= desiredSize.width)
-          && (repSize.height >= desiredSize.height)
-          && (repSize.width < bestSize.width)
-          && (repSize.height < bestSize.height))
-	  {
-	    bestSize = repSize;
-	    bestRep = rep;
-	  }
-      }
-  }
-  
-  if (bestRep == nil)
+  if (context == nil)
+    context = GSCurrentContext();
+  if (context != nil)
     {
-      bestRep = [reps lastObject];
+      NSAffineTransformStruct matrix = [[context GSCurrentCTM] transformStruct];
+
+      /* Measure the two transformed axes separately. transformSize: adds
+       * them together, which gives the wrong density for rotation or shear.
+       * The CTM already includes the window's user-space scale factor. */
+      desiredSize.width *= hypot(matrix.m11, matrix.m12);
+      desiredSize.height *= hypot(matrix.m21, matrix.m22);
     }
-  
-  return bestRep;
+  desiredSize.width = fabs(desiredSize.width);
+  desiredSize.height = fabs(desiredSize.height);
+  if (!isfinite(desiredSize.width) || !isfinite(desiredSize.height))
+    return nil;
+
+  /* Do not filter by nominal DPI first: a 1x and a 2x bitmap can have
+   * identical point sizes. All source resolutions must remain available
+   * when the destination context changes scale. */
+  reps = [self _bestRep: reps withColorMatch: deviceDescription];
+  reps = [self _bestRep: reps withBpsMatch: deviceDescription];
+  enumerator = [reps objectEnumerator];
+  while ((rep = [enumerator nextObject]) != nil)
+    {
+      NSInteger width = [rep pixelsWide];
+      NSInteger height = [rep pixelsHigh];
+      CGFloat area, coverage;
+
+      if (width == NSImageRepMatchesDevice
+          && height == NSImageRepMatchesDevice)
+        {
+          if (vectorRep == nil)
+            vectorRep = rep;
+          continue;
+        }
+      if (width <= 0 || height <= 0)
+        continue;
+      area = (CGFloat)width * height;
+      if (width >= desiredSize.width && height >= desiredSize.height
+          && area < bestArea)
+        {
+          bestRep = rep;
+          bestArea = area;
+        }
+      coverage = MIN(width / MAX(desiredSize.width, 1),
+                     height / MAX(desiredSize.height, 1));
+      if (coverage > fallbackCoverage)
+        {
+          fallback = rep;
+          fallbackCoverage = coverage;
+        }
+    }
+
+  /* Keep an exact bitmap match, otherwise prefer a device-independent rep
+   * when requested. It will render at the current destination resolution. */
+  if (vectorRep != nil && (bestRep == nil
+      || ([self usesEPSOnResolutionMismatch]
+          && ([bestRep pixelsWide] != desiredSize.width
+              || [bestRep pixelsHigh] != desiredSize.height))))
+    return vectorRep;
+  return bestRep != nil ? bestRep : fallback;
 }
 
 - (NSArray *) representations
@@ -2310,9 +2361,15 @@ iterate_reps_for_types(NSArray* imageReps, SEL method)
   CGFloat alpha = 1.0;
   NSGraphicsContext *ctxt = GSCurrentContext();
   NSImageInterpolation interpolation = [ctxt imageInterpolation];
+  NSAffineTransformStruct matrix = [[ctxt GSCurrentCTM] transformStruct];
+  CGFloat pixelsWide = ceil(dstRect.size.width * hypot(matrix.m11, matrix.m12));
+  CGFloat pixelsHigh = ceil(dstRect.size.height * hypot(matrix.m21, matrix.m22));
 
   if (dstRect.size.width <= 0 || dstRect.size.height <= 0
-      || repSrcRect.size.width <= 0 || repSrcRect.size.height <= 0)
+      || repSrcRect.size.width <= 0 || repSrcRect.size.height <= 0
+      || !isfinite(pixelsWide) || !isfinite(pixelsHigh)
+      || pixelsWide <= 0 || pixelsHigh <= 0
+      || pixelsWide > INT_MAX || pixelsHigh > INT_MAX)
     {
       return;
     }
@@ -2321,10 +2378,12 @@ iterate_reps_for_types(NSArray* imageReps, SEL method)
   DPScurrentalpha(ctxt, &alpha);
 
   maskRect = NSMakeRect(0, 0, repSrcRect.size.width, repSrcRect.size.height);
+  /* Template masks need the destination's pixel density too; otherwise
+   * even a vector PDF would be reduced to a 72-dpi alpha mask here. */
   mask = [[NSCachedImageRep alloc]
 	    initWithSize: maskRect.size
-	      pixelsWide: ceil(maskRect.size.width)
-	      pixelsHigh: ceil(maskRect.size.height)
+	      pixelsWide: pixelsWide
+	      pixelsHigh: pixelsHigh
 		   depth: [[NSScreen mainScreen] depth]
 		separate: YES
 		   alpha: YES];

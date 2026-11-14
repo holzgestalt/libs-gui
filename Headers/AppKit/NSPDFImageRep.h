@@ -100,7 +100,9 @@ APPKIT_EXPORT_CLASS
 
 /**
  * Sets the currently selected page for display and rendering operations.
- * The size and the pixel size of the representation follow the selected page.
+ * The size follows the selected page. With Poppler support, pixel dimensions
+ * remain NSImageRepMatchesDevice and the page renders at the drawing context's
+ * current resolution.
  * currentPage: Zero-based page index to select, clamped to the page count
  */
 - (void) setCurrentPage: (NSInteger)currentPage;
