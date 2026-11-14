@@ -1,4 +1,5 @@
 #import "Testing.h"
+#import "../GSThemeTest.h"
 #import <AppKit/AppKit.h>
 #import <GNUstepGUI/GSTheme.h>
 
@@ -51,18 +52,18 @@ int main(void)
   START_SET("Optional native menu tracking")
   [NSApplication sharedApplication];
   GSTheme *saved = RETAIN([GSTheme theme]);
-  GSTheme *stock = AUTORELEASE([[GSTheme alloc] initWithBundle: nil]);
+  GSTheme *stock = saved;
   TrackingView *view = AUTORELEASE([[TrackingView alloc] initWithFrame: NSZeroRect]);
   NSMenu *menu = AUTORELEASE([[NSMenu alloc] initWithTitle: @"Test"]);
   [view setMenu: menu];
-  [GSTheme setTheme: stock];
-  PASS(![stock trackMenuView: view withEvent: nil], "base theme declines native tracking");
+  GSTestSetTheme(stock);
+  PASS(![stock trackMenuView: view withEvent: nil], "linked stock provider declines native tracking");
   PASS(![stock displayNativePopUpMenu: menu atScreenRect: NSZeroRect forWindow: nil],
-       "base theme declines native positioned menus");
-  PASS([view trackWithEvent: nil] && view->appKitTracked, "base theme retains AppKit tracking");
+       "linked stock provider declines native positioned menus");
+  PASS([view trackWithEvent: nil] && view->appKitTracked, "linked stock provider retains AppKit tracking");
 
   NativeTrackingTheme *native = AUTORELEASE([[NativeTrackingTheme alloc] initWithBundle: nil]);
-  [GSTheme setTheme: native];
+  GSTestSetTheme(native);
   view->appKitTracked = NO;
   PASS([view trackWithEvent: nil] && view->appKitTracked && native->calls == 1,
        "a declining custom theme retains AppKit tracking");
@@ -77,7 +78,7 @@ int main(void)
        "an accepting theme owns tracking");
   PASS(observer->begins == 1 && observer->ends == 1, "native tracking posts one balanced notification pair");
   [center removeObserver: observer];
-  [GSTheme setTheme: saved];
+  GSTestRestoreTheme();
   RELEASE(saved);
   END_SET("Optional native menu tracking")
   return 0;

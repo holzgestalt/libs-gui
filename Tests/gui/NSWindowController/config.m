@@ -64,7 +64,10 @@ main(int argc, const char **argv)
       NSDocument *document = AUTORELEASE([NSDocument new]);
       [document setFileURL: [NSURL fileURLWithPath: @"/tmp/LoadedDocument.xml"]];
       [document addWindowController: manual];
-      PASS([[other title] isEqual: @"LoadedDocument.xml"], "manually supplied windows synchronize their document title");
+      /* NSWindow may decorate the file name with its represented directory. */
+      PASS([[other title] rangeOfString: [document displayName]].location != NSNotFound
+        && [[other representedFilename] isEqual: [document fileName]],
+        "manually supplied windows synchronize their document title and represented file");
       [document removeWindowController: manual];
       [manual setWindow: nil];
       PASS(![manual isWindowLoaded], "clearing the window reports it unloaded");

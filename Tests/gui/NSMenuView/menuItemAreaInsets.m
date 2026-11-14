@@ -5,6 +5,7 @@
    amount, and hit testing follows.  Laying out a menu needs the backend, so the
    body is guarded. */
 #import "Testing.h"
+#import "../GSThemeTest.h"
 #import <AppKit/NSApplication.h>
 #import <AppKit/NSMenu.h>
 #import <AppKit/NSMenuView.h>
@@ -53,14 +54,15 @@ int main(int argc, const char **argv)
 
   /* Install a theme that insets the item area and measure again. */
   GSTheme *saved = RETAIN([GSTheme theme]);
-  [GSTheme setTheme: AUTORELEASE([[PadTheme alloc] initWithBundle: nil])];
+  Class padded = GSTestThemeSubclass([saved class], [PadTheme class], "PaddedProviderMenuTheme");
+  GSTestSetTheme(AUTORELEASE([[padded alloc] initWithBundle: nil]));
   [mv setNeedsSizing: YES];
   [mv sizeToFit];
   NSRect padFrame = [mv frame];
   NSRect padItem = [mv rectOfItemAtIndex: 1];
   NSInteger hit = [mv indexOfItemAtPoint:
     NSMakePoint(NSMidX(padItem), NSMidY(padItem))];
-  [GSTheme setTheme: saved];
+  GSTestRestoreTheme();
   RELEASE(saved);
 
   PASS(padFrame.size.width - plainFrame.size.width == 11.0 + 13.0,
