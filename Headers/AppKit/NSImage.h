@@ -347,7 +347,11 @@ APPKIT_EXPORT_CLASS
 /**
  * Finds the best representation for drawing in the specified rect.
  * 
- * context and hints are currently ignored.
+ * Uses the context's current transform to determine the required pixel size.
+ * A nil context uses the current graphics context, or unit scale if none is
+ * current. Bitmap representations are compared by pixel dimensions, allowing
+ * representations with the same point size but different densities. Color
+ * space and sample-depth entries in hints refine the available candidates.
  */
 - (NSImageRep *)bestRepresentationForRect: (NSRect)rect
 				  context: (NSGraphicsContext *)context

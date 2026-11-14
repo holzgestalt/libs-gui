@@ -485,6 +485,23 @@ AC_CHECK_FUNCS(QuantizeBuffer)
 AC_CHECK_FUNCS(GifQuantizeBuffer)
 
 #--------------------------------------------------------------------
+# Find Poppler for device-resolution PDF image rendering.
+#--------------------------------------------------------------------
+AC_ARG_ENABLE(poppler,
+  [AS_HELP_STRING([--disable-poppler], [Disable Poppler PDF image support])],,
+  [enable_poppler=auto])
+AS_IF([test "x$enable_poppler" != "xno"], [
+  PKG_CHECK_MODULES([POPPLER], [poppler-glib >= 0.82], [
+    GRAPHIC_CFLAGS="$POPPLER_CFLAGS $GRAPHIC_CFLAGS"
+    GRAPHIC_LFLAGS="$POPPLER_LIBS $GRAPHIC_LFLAGS"
+    AC_DEFINE([HAVE_POPPLER], [1], [Have Poppler PDF image support])
+  ], [
+    AS_IF([test "x$enable_poppler" = "xyes"],
+      [AC_MSG_ERROR([Poppler PDF support requested but poppler-glib was not found])])
+  ])
+])
+
+#--------------------------------------------------------------------
 # Find ImageMagick
 #--------------------------------------------------------------------
 

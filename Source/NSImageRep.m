@@ -68,8 +68,10 @@ static Class NSImageRep_class = NULL;
       NSImageRep_class = self;
       imageReps = [[NSMutableArray alloc] initWithCapacity: 4];
       [imageReps addObject: [NSBitmapImageRep class]];
-#if HAVE_IMAGEMAGICK
+#if HAVE_POPPLER || HAVE_IMAGEMAGICK
       [imageReps addObject: [NSPDFImageRep class]];
+#endif
+#if HAVE_IMAGEMAGICK
       [imageReps addObject: [NSEPSImageRep class]];
       [imageReps addObject: [NSPICTImageRep class]];
       [imageReps addObject: [GSImageMagickImageRep class]];
