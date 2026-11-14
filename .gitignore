@@ -72,5 +72,3 @@ compile_commands.json
 .vscode
 *.tmp
 *.log
-
-/Source/GSBuiltinThemeSelection.h

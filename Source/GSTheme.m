@@ -62,12 +62,8 @@
 #import "AppKit/NSBezierPath.h"
 #import "AppKit/PSOperators.h"
 #import "GSThemePrivate.h"
-#import <GNUstepGUI/GSGNUstepTheme.h>
-#include "GSBuiltinThemeSelection.h"
-#if GS_STATIC_GTK4
-@interface GTK4NativeTheme : GSGNUstepTheme
-@end
-#endif
+/* Defined by the application link unit. AppKit has no concrete provider. */
+extern Class GSApplicationThemeClass(void) __attribute__((weak));
 
 NSString	*GSSwitch = @"GSSwitch";
 NSString        *GSRadio = @"GSRadio";
@@ -426,7 +422,13 @@ typedef	struct {
       null = RETAIN([NSNull null]);
       names = NSCreateMapTable(NSNonOwnedPointerMapKeyCallBacks,
         NSIntMapValueCallBacks, 0);
-      defaultTheme = [[GS_BUILTIN_THEME_CLASS alloc] initWithBundle: nil];
+      Class provider = GSApplicationThemeClass ? GSApplicationThemeClass() : Nil;
+      if (provider == Nil || provider == [GSTheme class]
+        || ![provider isSubclassOfClass: [GSTheme class]])
+        [NSException raise: NSInternalInconsistencyException
+                    format: @"This application must link a theme provider. "
+                      @"AppKit supplies only the GSTheme interface."];
+      defaultTheme = [[provider alloc] initWithBundle: nil];
       ASSIGN(theTheme, defaultTheme);
       [theTheme activate];
     }
@@ -939,10 +941,6 @@ typedef	struct {
 
 - (NSString*) name
 {
-  if (self == defaultTheme)
-    {
-      _name = @"GNUstep";
-    }
   return _name;
 }
 

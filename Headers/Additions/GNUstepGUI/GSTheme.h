@@ -475,16 +475,13 @@ APPKIT_EXPORT	NSString	*GSThemeWillDeactivateNotification;
   methods.
   </p>
   <p>
-  The default implementation uses the standard configurable colors
-  defined in NSColor, such as <code>controlLightHighlightColor</code>,
-  <code>controlShadowColor</code> and <code>controlDarkShadowColor</code>.<br />
-  Themes are expected to override the default system color list with their
-  own versions, and this class cooperates with [NSColor] and [NSColorList]
-  to establish the correct system color list when a theme is activated.
+  Concrete providers supply the drawing methods and may override the system
+  color list. This class coordinates provider activation with [NSColor] and
+  [NSColorList]; it supplies no default appearance.
   </p>
   <p>
   The following historical bundle documentation does not apply to this build.
-  This build selects a linked provider with GNUSTEP_BUILTIN_THEME.
+  This build selects a linked provider with the application link unit.
   Previously the class provided automatic loading of theme bundles
   consisting of resources used to define how drawing is done, plus an
   optional binary subclass of this class (to replace/extend the drawing
@@ -497,6 +494,11 @@ APPKIT_EXPORT	NSString	*GSThemeWillDeactivateNotification;
   use the appropriate behavior.
   </p>
 */ 
+/** An application must define GSApplicationThemeClass(void), returning a
+ * concrete GSTheme subclass supplied by its linked provider. AppKit supplies
+ * no default appearance and loads no theme bundles. Missing providers cause
+ * an NSInternalInconsistencyException at first theme use.
+ */
 APPKIT_EXPORT_CLASS
 @interface GSTheme : NSObject
 {
@@ -504,7 +506,7 @@ APPKIT_EXPORT_CLASS
   void		*_reserved;
 }
 
-/** Returns the compiled provider for nil, an empty name or its own name.
+/** Returns the application-linked provider for nil, an empty name or its own name.
  * Other names and bundle paths return nil; no code is loaded at runtime.
  */
 + (GSTheme*) loadThemeNamed: (NSString*)themeName;
@@ -512,10 +514,10 @@ APPKIT_EXPORT_CLASS
 /** Retained for source compatibility; does nothing. */
 + (void) orderFrontSharedThemePanel: (id)sender;
 
-/** Retained for source compatibility; the compiled provider cannot change. */
+/** Retained for source compatibility; the application-linked provider cannot change. */
 + (void) setTheme: (GSTheme*)theme;
 
-/** Returns the single provider selected when AppKit was built. */
+/** Returns the single provider selected when the application was linked. */
 + (GSTheme*) theme;
 
 /**

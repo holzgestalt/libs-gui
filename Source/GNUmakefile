@@ -339,14 +339,9 @@ GSIconManager.m \
 GSImageMagickImageRep.m \
 GSNibLoading.m \
 GSTheme.m \
-Themes/GNUstep/GSGNUstepTheme.m \
-Themes/GNUstep/GSThemeDrawing.m \
+GSDrawTiles.m \
+GSThemeSupport.m \
 GSThemeInspector.m \
-Themes/GNUstep/GSThemeMenu.m \
-Themes/GNUstep/GSThemeOpenSavePanels.m \
-Themes/GNUstep/GSThemePrintPanels.m \
-Themes/GNUstep/GSThemeTools.m \
-Themes/GNUstep/GSThemeWindow.m \
 GSTitleView.m \
 GSToolTips.m \
 GSToolbarView.m \
@@ -671,7 +666,6 @@ GMAppKit.h \
 GMArchiver.h \
 GSAnimator.h \
 GSTheme.h \
-GSGNUstepTheme.h \
 GSFontInfo.h \
 GSMemoryPanel.h \
 GSInfoPanel.h \
