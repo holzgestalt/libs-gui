@@ -1698,7 +1698,8 @@ titleWithRepresentedFilename(NSString *representedFilename)
         }
 
       [_wv setInputState: GSTitleBarKey];
-      [GSServerForWindow(self) setinputfocus: _windowNum];
+      if (![_wv focusNativeWindow])
+        [GSServerForWindow(self) setinputfocus: _windowNum];
       [self resetCursorRects];
       [nc postNotificationName: NSWindowDidBecomeKeyNotification object: self];
       NSDebugLLog(@"NSWindow", @"%@ is now key window", [self title]);
@@ -2029,7 +2030,8 @@ titleWithRepresentedFilename(NSString *representedFilename)
       if ([self isKeyWindow] == YES)
         {
           [_wv setInputState: GSTitleBarKey];
-          [srv setinputfocus: _windowNum];
+          if (![_wv focusNativeWindow])
+            [srv setinputfocus: _windowNum];
         }
       _f.visible = YES;
     }
@@ -4204,9 +4206,9 @@ checkCursorRectanglesExited(NSView *theView,  NSEvent *theEvent, NSPoint lastPoi
       return;
     }
 
-  // Native hosts do not receive pointer events delivered directly to the
-  // backend child. Hand focus back even when the clicked editor is already
-  // AppKit's first responder (or a button deliberately leaves it unchanged).
+  // Native hosts route AppKit pointer input through their content widget.
+  // Select that input surface even when the clicked editor is already the
+  // first responder (or a button deliberately leaves it unchanged).
   if (type == NSLeftMouseDown || type == NSRightMouseDown
       || type == NSOtherMouseDown)
     [_wv focusAppKitContent];

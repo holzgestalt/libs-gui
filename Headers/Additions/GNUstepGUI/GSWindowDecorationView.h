@@ -97,6 +97,8 @@ APPKIT_EXPORT_CLASS
 - (BOOL) orderNativeWindow: (NSInteger)place relativeTo: (NSInteger)other;
 - (BOOL) placeNativeWindow: (NSRect)frame;
 - (BOOL) miniaturizeNativeWindow;
+/** A native host may own keyboard focus while the backend stays offscreen. */
+- (BOOL) focusNativeWindow;
 /** Relinquish native control focus before input enters the AppKit content. */
 - (void) focusAppKitContent;
 

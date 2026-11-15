@@ -423,6 +423,7 @@ static inline NSRect RectWithSizeScaledByFactor(NSRect aRect, CGFloat factor)
 - (BOOL) orderNativeWindow: (NSInteger)place relativeTo: (NSInteger)other { return NO; }
 - (BOOL) placeNativeWindow: (NSRect)frame { return NO; }
 - (BOOL) miniaturizeNativeWindow { return NO; }
+- (BOOL) focusNativeWindow { return NO; }
 - (void) focusAppKitContent {}
 
 - (void) setWindowNumber: (int)theWindowNumber
