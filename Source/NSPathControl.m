@@ -47,6 +47,10 @@ static Class pathCellClass;
 - (NSPathControlItem *) _pathControlItem;
 @end
 
+@interface NSPathComponentCell (Private)
+- (void) _setLastComponent: (BOOL)f;
+@end
+
 @implementation NSPathControl
 
 + (void) initialize
@@ -225,7 +229,15 @@ static Class pathCellClass;
 
 - (NSPathControlItem *) clickedPathItem
 {
-  return [[self clickedPathComponentCell] _pathControlItem];
+  NSPathComponentCell *cell = [self clickedPathComponentCell];
+  NSUInteger index = [[_cell pathComponentCells] indexOfObjectIdenticalTo: cell];
+
+  /* The item the application set for this component, when there is one. */
+  if (cell != nil && index != NSNotFound && index < [_pathItems count])
+    {
+      return [_pathItems objectAtIndex: index];
+    }
+  return [cell _pathControlItem];
 }
 
 - (NSArray *) pathItems
@@ -244,6 +256,12 @@ static Class pathCellClass;
       NSPathComponentCell *cell = [[NSPathComponentCell alloc] init];  
       [cell setImage: [item image]];
       [cell setURL: [item URL]];
+      if ([item title] != nil)
+        {
+          [cell setStringValue: [item title]];
+        }
+      [cell setFont: [self font]];
+      [cell _setLastComponent: (item == [items lastObject])];
       [array addObject: cell];
       RELEASE(cell);
     }
@@ -433,11 +451,12 @@ static Class pathCellClass;
     }
   else
     {
-      NSPathComponentCell *pcc = [_cell pathComponentCellAtPoint: [event locationInWindow]
-                                                       withFrame: [self frame]
+      NSPoint point = [self convertPoint: [event locationInWindow] fromView: nil];
+      NSPathComponentCell *pcc = [_cell pathComponentCellAtPoint: point
+                                                       withFrame: [self bounds]
                                                           inView: self];
       [_cell _setClickedPathComponentCell: pcc];
-      if ([[self cell] action])
+      if (pcc != nil && [[self cell] action])
         {
           [self sendAction: [[self cell] action]
                         to: [[self cell] target]];

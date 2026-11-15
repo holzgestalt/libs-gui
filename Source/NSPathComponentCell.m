@@ -27,6 +27,9 @@
 
 #import "AppKit/NSPathComponentCell.h"
 #import "AppKit/NSImage.h"
+#import "AppKit/NSFont.h"
+#import "AppKit/NSStringDrawing.h"
+#import "AppKit/NSAttributedString.h"
 
 #import "GNUstepGUI/GSTheme.h"
 
@@ -59,10 +62,43 @@
   ASSIGNCOPY(_url, url);
 }
 
+/* The title shown for this component: its own string value (from an
+ * NSPathControlItem), otherwise the last component of its URL. */
+- (NSString *) _displayTitle
+{
+  NSString *title = [self stringValue];
+
+  if ([title length] == 0)
+    {
+      title = [[_url path] lastPathComponent];
+    }
+  return title ? title : @"";
+}
+
+/* Room for the icon, the title and the separator to the next component. */
+- (NSSize) cellSize
+{
+  NSFont *font = [self font] ? [self font] : [NSFont systemFontOfSize: 0];
+  NSDictionary *attributes = [NSDictionary dictionaryWithObject: font
+                                                         forKey: NSFontAttributeName];
+  NSSize text = [[self _displayTitle] sizeWithAttributes: attributes];
+  CGFloat width = 4.0 + text.width + 4.0;
+
+  if (_image != nil)
+    {
+      width += 16.0 + 4.0;
+    }
+  if (!_lastComponent)
+    {
+      width += 14.0;
+    }
+  return NSMakeSize(ceil(width), MAX(20.0, ceil(text.height) + 4.0));
+}
+
 - (void) drawInteriorWithFrame: (NSRect)f
                         inView: (NSView *)v
 {
-  [super drawInteriorWithFrame: f inView: v];
+  /* The theme draws the whole component (icon, title, separator). */
   [[GSTheme theme] drawPathComponentCellWithFrame: f
                                            inView: (NSPathControl *)v
                                          withCell: self
