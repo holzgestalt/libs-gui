@@ -48,6 +48,12 @@ Images_RESOURCE_FILES = \
  NSComboArrow.tiff \
  NSRatingLevelIndicator.tiff \
  NSRemoveTemplate.tiff\
+ NSTouchBarDeleteTemplate.tiff \
+ NSTouchBarPauseTemplate.tiff \
+ NSTouchBarPlayTemplate.tiff \
+ NSTouchBarRecordStopTemplate.tiff \
+ NSTouchBarSearchTemplate.tiff \
+ NSTouchBarSidebarTemplate.tiff \
  common_2DCheckMark.tiff \
  common_2DDash.tiff \
  common_3DArrowDown.tiff \
