@@ -45,9 +45,6 @@ Images_RESOURCE_FILES = \
  LogoGNUstep.tiff \
  MagnifyGlass.tiff \
  NSAddTemplate.tiff\
- GSBottomPaneTemplate.tiff \
- GSBuildTemplate.tiff \
- GSInspectorPaneTemplate.tiff \
  NSComboArrow.tiff \
  NSRatingLevelIndicator.tiff \
  NSRemoveTemplate.tiff\
