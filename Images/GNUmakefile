@@ -49,6 +49,7 @@ Images_RESOURCE_FILES = \
  NSRatingLevelIndicator.tiff \
  NSRemoveTemplate.tiff\
  NSTouchBarDeleteTemplate.tiff \
+ NSTouchBarPauseTemplate.tiff \
  NSTouchBarPlayTemplate.tiff \
  NSTouchBarRecordStopTemplate.tiff \
  NSTouchBarSearchTemplate.tiff \
