@@ -139,27 +139,78 @@ static Class pathComponentCellClass;
   pathComponentCellClass = clz;
 }
 
+/* Component widths in frame: each its natural width; when they do not
+ * fit, the components before the last shrink evenly, down to their icon. */
+- (CGFloat) _widthOfPathComponentCellAtIndex: (NSUInteger)index
+                                   withFrame: (NSRect)frame
+{
+  NSUInteger count = [_pathComponentCells count];
+  CGFloat total = 0.0;
+  CGFloat lastWidth;
+  CGFloat others;
+  CGFloat available;
+  NSUInteger i;
+
+  for (i = 0; i < count; i++)
+    {
+      total += [[_pathComponentCells objectAtIndex: i] cellSize].width;
+    }
+  if (total <= NSWidth(frame) || count == 0)
+    {
+      return [[_pathComponentCells objectAtIndex: index] cellSize].width;
+    }
+  lastWidth = MIN([[_pathComponentCells lastObject] cellSize].width,
+                  MAX(NSWidth(frame) / 2.0, NSWidth(frame) - 40.0 * (count - 1)));
+  if (index == count - 1)
+    {
+      return lastWidth;
+    }
+  others = total - [[_pathComponentCells lastObject] cellSize].width;
+  available = MAX(0.0, NSWidth(frame) - lastWidth);
+  return MAX(40.0, [[_pathComponentCells objectAtIndex: index] cellSize].width
+                     * available / others);
+}
+
 - (NSRect)rectOfPathComponentCell:(NSPathComponentCell *)cell 
                         withFrame:(NSRect)frame 
                            inView:(NSView *)view
 {
-  NSUInteger index = [_pathComponentCells indexOfObject: cell];
-  CGFloat cellWidth = (frame.size.width / (CGFloat)[_pathComponentCells count]);
-  return NSMakeRect(frame.origin.x + (cellWidth * (CGFloat)index),
-                    frame.origin.y,
-                    cellWidth,
-                    frame.size.height);
+  NSUInteger index = [_pathComponentCells indexOfObjectIdenticalTo: cell];
+  CGFloat x = NSMinX(frame);
+  NSUInteger i;
+
+  if (index == NSNotFound)
+    {
+      return NSZeroRect;
+    }
+  for (i = 0; i < index; i++)
+    {
+      x += [self _widthOfPathComponentCellAtIndex: i withFrame: frame];
+    }
+  return NSMakeRect(x, NSMinY(frame),
+                    MIN([self _widthOfPathComponentCellAtIndex: index withFrame: frame],
+                        MAX(0.0, NSMaxX(frame) - x)),
+                    NSHeight(frame));
 }
 
 - (NSPathComponentCell *)pathComponentCellAtPoint:(NSPoint)point 
                                         withFrame:(NSRect)frame 
                                            inView:(NSView *)view
 {
-  NSUInteger c = [_pathComponentCells count];
-  NSUInteger woc = frame.size.width / c;
-  NSUInteger item = (NSUInteger)point.x / woc;
+  NSEnumerator *en = [_pathComponentCells objectEnumerator];
+  NSPathComponentCell *cell;
 
-  return [_pathComponentCells objectAtIndex: item];
+  /* point is in view's coordinate system, like frame. */
+  while ((cell = [en nextObject]) != nil)
+    {
+      if (NSPointInRect(point, [self rectOfPathComponentCell: cell
+                                                   withFrame: frame
+                                                      inView: view]))
+        {
+          return cell;
+        }
+    }
+  return nil;
 }
 
 - (NSPathComponentCell *) clickedPathComponentCell
