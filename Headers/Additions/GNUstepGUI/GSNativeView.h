@@ -8,6 +8,9 @@
 - (BOOL)ownsLayoutForNativeView:(NSView *)view;
 - (void)layoutNativeView:(NSView *)view;
 - (BOOL)focusNativeView:(NSView *)view;
+@optional
+/* The native container paints the standard view background. */
+- (BOOL)ownsBackgroundForNativeView:(NSView *)view;
 @end
 /* Draw only this view, with native dirty-region queries, in the current context. */
 APPKIT_EXPORT void GSDrawNativeView(NSView *view, NSRect rect);

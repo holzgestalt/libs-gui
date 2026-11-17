@@ -27,6 +27,7 @@
 */
 
 #import "config.h"
+#import "../Headers/Additions/GNUstepGUI/GSNativeView.h"
 #import <Foundation/NSNotification.h>
 #import <Foundation/NSException.h>
 
@@ -469,6 +470,9 @@ static inline NSRect integralRect (NSRect rect, NSView *view)
 
 - (void) drawRect: (NSRect)rect
 {
+  id<GSNativeViewPeer> peer = GSNativeViewPeerForView(self);
+  if ([peer respondsToSelector:@selector(ownsBackgroundForNativeView:)]
+      && [peer ownsBackgroundForNativeView:self]) return;
   if (_drawsBackground)
     {
       [_backgroundColor set];

@@ -31,6 +31,7 @@
 */
 
 #include "config.h"
+#import "../Headers/Additions/GNUstepGUI/GSNativeView.h"
 
 #import <Foundation/NSDictionary.h>
 #import <Foundation/NSFormatter.h>
@@ -550,6 +551,8 @@ static Class textFieldCellClass;
 
 - (BOOL) becomeFirstResponder
 {
+  id<GSNativeViewPeer> peer=GSNativeViewPeerForView(self);
+  if (peer && [self acceptsFirstResponder] && [peer focusNativeView:self]) return YES;
   if ([self acceptsFirstResponder])
     {
       [self selectText: self];
