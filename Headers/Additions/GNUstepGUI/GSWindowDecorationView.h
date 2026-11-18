@@ -89,6 +89,7 @@ APPKIT_EXPORT_CLASS
 - (void) setDocumentEdited: (BOOL)flag;
 - (void) setInputState: (int)state;
 - (void) setTitle: (NSString *)title;
+- (void) setSubtitle: (NSString *)subtitle;
 
 /** Optional native host operations. Default implementations retain backend
  * ownership. A decorator that hosts the backend surface may handle ordering,

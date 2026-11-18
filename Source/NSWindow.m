@@ -963,6 +963,7 @@ many times.
   DESTROY(_miniaturizedTitle);
   DESTROY(_miniaturizedImage);
   DESTROY(_windowTitle);
+  DESTROY(_subtitle);
   DESTROY(_rectsBeingDrawn);
   DESTROY(_initialFirstResponder);
   DESTROY(_defaultButtonCell);
@@ -1373,6 +1374,14 @@ many times.
 - (void) setRepresentedFilename: (NSString*)aString
 {
   ASSIGN(_representedFilename, aString);
+}
+
+- (NSString *) subtitle { return _subtitle ?: @""; }
+- (void) setSubtitle: (NSString *)subtitle
+{
+  if ([self.subtitle isEqualToString: subtitle ?: @""]) return;
+  ASSIGNCOPY(_subtitle, subtitle);
+  [_wv setSubtitle: _subtitle];
 }
 
 /** Sets the window's title to the string <var>aString</var>. */
