@@ -1,0 +1,10 @@
+include $(GNUSTEP_MAKEFILES)/common.make
+TOOL_NAME = GuiThemeTool FoundationTool
+GuiThemeTool_NEEDS_GUI = yes
+GuiThemeTool_OBJC_FILES = main.m
+FoundationTool_OBJC_FILES = foundation.m
+BUNDLE_NAME = ProviderHostOnly
+ProviderHostOnly_NEEDS_GUI = yes
+ProviderHostOnly_OBJC_FILES = bundle.m
+include $(GNUSTEP_MAKEFILES)/tool.make
+include $(GNUSTEP_MAKEFILES)/bundle.make

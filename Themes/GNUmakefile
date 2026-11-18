@@ -29,12 +29,11 @@ include $(GNUSTEP_MAKEFILES)/common.make
 
 include ../Version
 
-#
-# We have no themes to install yet!  Once we have them, add them to
-# the Themes_RESOURCE_FILES variable.
-# 
-RESOURCE_SET_NAME = Themes
-Themes_INSTALL_DIR = $(GNUSTEP_LIBRARY)/Themes
-Themes_RESOURCE_FILES = 
+SUBPROJECTS = Classic Default
+include $(GNUSTEP_MAKEFILES)/aggregate.make
 
-include $(GNUSTEP_MAKEFILES)/resource-set.make
+after-install::
+	$(MKDIRS) $(DESTDIR)$(GNUSTEP_MAKEFILES)/ThemeSupport
+	$(INSTALL_DATA) theme-provider.make $(DESTDIR)$(GNUSTEP_MAKEFILES)/ThemeSupport/provider.make
+after-uninstall::
+	rm -f $(DESTDIR)$(GNUSTEP_MAKEFILES)/ThemeSupport/provider.make

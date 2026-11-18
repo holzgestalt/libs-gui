@@ -56,6 +56,7 @@ doc=no
 ifeq ($(_have_makefiles),yes)
 SUBPROJECTS = \
 Source \
+Themes \
 Images \
 Sounds \
 Model \
@@ -67,8 +68,10 @@ ColorPickers \
 KeyBindings \
 Resources \
 Printing \
-Themes \
 Tests
+
+# Local GUI applications can link the providers before installation.
+export GNUSTEP_THEME_BUILD_ROOT := $(CURDIR)/Themes
 
 # Build and install sounds, if sound support is present.
 SUBPROJECTS += $(BUILD_SOUNDS)
