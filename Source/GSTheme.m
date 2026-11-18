@@ -39,7 +39,7 @@
 #import <Foundation/NSPathUtilities.h>
 #import <Foundation/NSSet.h>
 #import <Foundation/NSUserDefaults.h>
-#import "GNUstepGUI/GSTheme.h"
+#import "../Headers/Additions/GNUstepGUI/GSTheme.h"
 #import "AppKit/NSApplication.h"
 #import "AppKit/NSButtonCell.h"
 #import "AppKit/NSButton.h"
@@ -366,6 +366,13 @@ GSStringFromImageFrameStyle(NSImageFrameStyle type)
 {
   return NO;
 }
+- (NSSize) scrollViewBorderSizeForType: (NSBorderType)type
+{
+  return [self sizeForBorderType:type];
+}
+- (BOOL) scrollViewUsesNativeScrollers: (NSScrollView *)view { return NO; }
+- (CGFloat) splitViewDividerThickness: (NSSplitView *)view { return 0; }
+- (BOOL) drawSplitViewDividerInRect: (NSRect)rect inView: (NSSplitView *)view { return NO; }
 
 - (id<GSNativeTableView>) nativeTableViewForTableView: (NSTableView *)table
 {

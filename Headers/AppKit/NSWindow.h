@@ -271,6 +271,7 @@ PACKAGE_SCOPE
   NSString      *_miniaturizedTitle;
   NSImage       *_miniaturizedImage;
   NSString      *_windowTitle;
+  NSString      *_subtitle;
 PACKAGE_SCOPE
   NSPoint       _lastPoint;
 @protected
@@ -703,6 +704,8 @@ PACKAGE_SCOPE
 - (NSString*) representedFilename;
 - (void) setRepresentedFilename: (NSString*)aString;
 - (void) setTitle: (NSString*)aString;
+- (NSString *) subtitle;
+- (void) setSubtitle: (NSString *)subtitle;
 - (void) setTitleWithRepresentedFilename: (NSString*)aString;
 - (NSString*) title;
 

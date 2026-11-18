@@ -5233,6 +5233,13 @@ This method is deprecated, use -columnIndexesInRect:. */
 		   withBackgroundColor: _backgroundColor];
 }
 
+- (id) _nativeTableView
+{
+  if (_viewBased && _nativeTableView == nil && !_nativeTableViewDeclined)
+    _nativeTableView = RETAIN([[GSTheme theme] nativeTableViewForTableView: self]);
+  return _nativeTableView;
+}
+
 - (void) drawRect: (NSRect)aRect
 {
   if (_viewBased && [NSGraphicsContext currentContextDrawingToScreen])

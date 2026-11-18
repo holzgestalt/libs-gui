@@ -26,17 +26,26 @@
    Boston, MA 02110-1301, USA.
 */
 
+#import "../Headers/AppKit/NSProgressIndicator.h"
+#import "../Headers/Additions/GNUstepGUI/GSNativeView.h"
 #import <Foundation/NSAutoreleasePool.h>
 #import <Foundation/NSRunLoop.h>
 #import <Foundation/NSThread.h>
 #import <Foundation/NSTimer.h>
+#import <Foundation/NSValue.h>
 #import "AppKit/NSApplication.h"
-#import "AppKit/NSProgressIndicator.h"
 #import "AppKit/NSGraphics.h"
 #import "AppKit/NSImage.h"
 #import "AppKit/NSWindow.h"
 #import "GNUstepGUI/GSTheme.h"
 #import "GNUstepGUI/GSNibLoading.h"
+
+static BOOL nativeAnimationOwner(NSView *view)
+{
+  id<GSNativeViewPeer> peer = GSNativeViewPeerForView(view);
+  return [peer respondsToSelector:@selector(ownsAnimationForNativeView:)]
+    && [peer ownsAnimationForNativeView:view];
+}
 
 @implementation NSProgressIndicator
 
@@ -108,13 +117,22 @@
     }
 }
 
-- (void) _animationLoop
+- (void) _animateGeneration: (NSNumber *)generation
 {
-  while (_isRunning)
+  if (_isRunning && generation.unsignedIntegerValue == _animationGeneration)
+    [self animate:self];
+}
+
+- (void) _animationLoop: (NSNumber *)generation
+{
+  while (_isRunning && generation.unsignedIntegerValue == _animationGeneration)
     {
       CREATE_AUTORELEASE_POOL(pool);
 
-      [self animate: self];
+      // Native peers and view invalidation belong to the AppKit thread.
+      // Recheck ownership there so queued work cannot outlive a handoff.
+      [self performSelectorOnMainThread:@selector(_animateGeneration:)
+        withObject:generation waitUntilDone:NO];
       [NSThread sleepForTimeInterval: _animationDelay];
       [pool drain];
     }
@@ -127,6 +145,12 @@
     return;
 
   _isRunning = YES;
+  _animationGeneration++;
+  if (nativeAnimationOwner(self))
+    {
+      [self setNeedsDisplay:YES];
+      return;
+    }
   if (!_usesThreadedAnimation)
     {
       ASSIGN(_timer, [NSTimer scheduledTimerWithTimeInterval: _animationDelay 
@@ -138,10 +162,22 @@
     }
   else
     {
-      [NSThread detachNewThreadSelector: @selector(_animationLoop) 
+      [NSThread detachNewThreadSelector: @selector(_animationLoop:)
                 toTarget: self 
-                withObject: nil];
+                withObject: [NSNumber numberWithUnsignedInteger:_animationGeneration]];
     }
+}
+
+- (void)nativeViewPeerDidChange
+{
+  if (!_isRunning) return;
+  // Retire any old timer/thread before choosing the new animation owner.
+  // A generation prevents a quickly reattached view reviving an old thread.
+  _animationGeneration++;
+  [_timer invalidate];
+  DESTROY(_timer);
+  _isRunning = NO;
+  [self startAnimation:self];
 }
 
 - (void) stopAnimation: (id)sender
@@ -161,6 +197,7 @@
     }
 
   _isRunning = NO;
+  _animationGeneration++;
   _count = 0;
   [self setNeedsDisplay: YES];
 }
@@ -542,6 +579,8 @@
 @end
 
 @implementation NSProgressIndicator (GNUstepExtensions)
+
+- (BOOL)isAnimating { return _isRunning; }
 
 - (BOOL) isVertical
 {

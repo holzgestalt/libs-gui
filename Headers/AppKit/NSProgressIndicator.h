@@ -93,6 +93,7 @@ APPKIT_EXPORT_CLASS
   BOOL _isRunning;
   int _count;
   NSTimer *_timer;
+  NSUInteger _animationGeneration;
   id _reserved;
 }
 
@@ -254,6 +255,9 @@ APPKIT_EXPORT_CLASS
  * GNUstep extensions.
  */
 @interface NSProgressIndicator (GNUstepExtensions)
+
+/** Whether startAnimation: is active, independent of the rendering backend. */
+- (BOOL)isAnimating;
 
 /**
  * Enables vertical progress bar orientation.

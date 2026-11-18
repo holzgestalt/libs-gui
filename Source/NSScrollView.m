@@ -49,7 +49,7 @@
 #import "AppKit/NSTableView.h"
 #import "AppKit/NSWindow.h"
 #import "AppKit/PSOperators.h"
-#import "GNUstepGUI/GSTheme.h"
+#import "../Headers/Additions/GNUstepGUI/GSTheme.h"
 
 @interface NSClipView (Private)
 - (void) _scrollToPoint: (NSPoint)aPoint;
@@ -148,7 +148,7 @@ static CGFloat scrollerWidth;
                         borderType: (NSBorderType)borderType
 {
   NSSize size = frameSize;
-  NSSize border = [[GSTheme theme] sizeForBorderType: borderType];
+  NSSize border = [[GSTheme theme] scrollViewBorderSizeForType: borderType];
   CGFloat innerBorderWidth = [[NSUserDefaults standardUserDefaults]
 			      boolForKey: @"GSScrollViewNoInnerBorder"] ? 0.0 : 1.0;
 
@@ -178,7 +178,7 @@ static CGFloat scrollerWidth;
                         borderType: (NSBorderType)borderType
 {
   NSSize size = contentSize;
-  NSSize border = [[GSTheme theme] sizeForBorderType: borderType];
+  NSSize border = [[GSTheme theme] scrollViewBorderSizeForType: borderType];
   CGFloat innerBorderWidth = [[NSUserDefaults standardUserDefaults]
 			      boolForKey: @"GSScrollViewNoInnerBorder"] ? 0.0 : 1.0;
 
@@ -1039,7 +1039,7 @@ GSOppositeEdge(NSRectEdge edge)
 - (void) tile
 {
   NSRect headerRect, contentRect;
-  NSSize border = [[GSTheme theme] sizeForBorderType: _borderType];
+  NSSize border = [[GSTheme theme] scrollViewBorderSizeForType: _borderType];
   NSRectEdge bottomEdge, topEdge;
   CGFloat headerViewHeight = 0;
   NSRectEdge verticalScrollerEdge = NSMinXEdge;
@@ -1894,6 +1894,7 @@ GSOppositeEdge(NSRectEdge edge)
  */
 - (void) _autohideScrollers
 {
+  if ([[GSTheme theme] scrollViewUsesNativeScrollers:self]) return;
   NSView *documentView = [_contentView documentView];
   NSSize documentSize;
   NSSize clipSize;

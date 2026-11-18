@@ -43,6 +43,8 @@
 #import <Foundation/NSRunLoop.h>
 #import <Foundation/NSString.h>
 #import <Foundation/NSUserDefaults.h>
+#import "../Headers/Additions/GNUstepGUI/GSTheme.h"
+#import "../Headers/Additions/GNUstepGUI/GSNativeView.h"
 
 #import "AppKit/NSApplication.h"
 #import "AppKit/NSBezierPath.h"
@@ -837,6 +839,12 @@ static CGFloat constrainedPaneSize(NSView *view, BOOL vertical, CGFloat proposed
 
 - (void) _adjustSubviews: (NSSize)oldSize
 {
+  id<GSNativeViewPeer> peer = GSNativeViewPeerForView(self);
+  if ([peer ownsLayoutForNativeView:self])
+    {
+      [peer layoutNativeView:self];
+      return;
+    }
   SEL delegateMethod = @selector (splitView:resizeSubviewsWithOldSize:);
   
   if (_delegate != nil  && [_delegate respondsToSelector: delegateMethod])     
@@ -1068,6 +1076,8 @@ static CGFloat constrainedPaneSize(NSView *view, BOOL vertical, CGFloat proposed
 
 - (CGFloat) dividerThickness 
 {
+  CGFloat native = [[GSTheme theme] splitViewDividerThickness: self];
+  if (native > 0) return native;
   /*
    * You need to override this method in subclasses to change the
    * dividerThickness (or, without need for subclassing, invoke
@@ -1138,6 +1148,7 @@ static inline NSPoint centerSizeInRect(NSSize innerSize, NSRect outerRect)
 
 - (void) drawDividerInRect: (NSRect)aRect
 {
+  if ([[GSTheme theme] drawSplitViewDividerInRect: aRect inView: self]) return;
   if (_dividerStyle == NSSplitViewDividerStyleThin)
     [self drawThinDividerInRect: aRect];
   else if (_dividerStyle == NSSplitViewDividerStyleThick)

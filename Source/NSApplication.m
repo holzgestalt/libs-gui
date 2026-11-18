@@ -31,6 +31,7 @@
 */
 
 #import "config.h"
+#import "../Headers/Additions/GNUstepGUI/GSNativeView.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -2243,8 +2244,13 @@ See -runModalForWindow:
 			    inMode: (NSString*)mode
 			   dequeue: (BOOL)flag
 {
-  NSEvent	*event;
+  NSEvent *event;
 
+  if ([mode isEqual:NSEventTrackingRunLoopMode])
+    {
+      event=GSNextNativeEvent(mask,flag);
+      if(event) { if(flag) ASSIGN(_current_event,event); return event; }
+    }
   if (_windows_need_update)
     {
       [self updateWindows];

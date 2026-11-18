@@ -247,6 +247,7 @@
 @class NSColor;
 @class NSColorList;
 @class NSColorWell;
+@class NSSplitView;
 @class NSImage;
 @class NSMenuItemCell;
 @class NSOutlineView;
@@ -960,6 +961,14 @@ APPKIT_EXPORT_CLASS
  * Controlled by user default GSScrollViewScrollersOverlapBorders; default NO;
  */
 - (BOOL) scrollViewScrollersOverlapBorders;
+/** Native scroll containers own scrollbar visibility, including autohiding. */
+- (BOOL) scrollViewUsesNativeScrollers: (NSScrollView *)view;
+/** Scroll-specific border metrics; defaults to sizeForBorderType:. */
+- (NSSize) scrollViewBorderSizeForType: (NSBorderType)type;
+/** Native separator thickness. A nonpositive thickness and NO drawing
+ * retain NSSplitView's fallback. */
+- (CGFloat) splitViewDividerThickness: (NSSplitView *)view;
+- (BOOL) drawSplitViewDividerInRect: (NSRect)rect inView: (NSSplitView *)view;
 
 /** 
  * Method for toolbar theming.

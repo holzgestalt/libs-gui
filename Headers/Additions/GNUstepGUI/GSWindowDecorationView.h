@@ -89,6 +89,7 @@ APPKIT_EXPORT_CLASS
 - (void) setDocumentEdited: (BOOL)flag;
 - (void) setInputState: (int)state;
 - (void) setTitle: (NSString *)title;
+- (void) setSubtitle: (NSString *)subtitle;
 
 /** Optional native host operations. Default implementations retain backend
  * ownership. A decorator that hosts the backend surface may handle ordering,
@@ -97,6 +98,8 @@ APPKIT_EXPORT_CLASS
 - (BOOL) orderNativeWindow: (NSInteger)place relativeTo: (NSInteger)other;
 - (BOOL) placeNativeWindow: (NSRect)frame;
 - (BOOL) miniaturizeNativeWindow;
+/** A native host may own keyboard focus while the backend stays offscreen. */
+- (BOOL) focusNativeWindow;
 /** Relinquish native control focus before input enters the AppKit content. */
 - (void) focusAppKitContent;
 

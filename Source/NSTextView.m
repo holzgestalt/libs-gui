@@ -49,6 +49,7 @@
 */
 
 #import "config.h"
+#import "../Headers/Additions/GNUstepGUI/GSNativeView.h"
 #import <Foundation/NSArchiver.h>
 #import <Foundation/NSArray.h>
 #import <Foundation/NSCharacterSet.h>
@@ -4118,6 +4119,9 @@ Figure out how the additional layout stuff is supposed to work.
 
 - (void) drawViewBackgroundInRect: (NSRect)rect
 {
+  id<GSNativeViewPeer> peer = GSNativeViewPeerForView(self);
+  if ([peer respondsToSelector:@selector(ownsBackgroundForNativeView:)]
+      && [peer ownsBackgroundForNativeView:self]) return;
   if (_tf.draws_background)
     {
       [_backgroundColor set];

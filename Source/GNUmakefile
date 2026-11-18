@@ -666,6 +666,7 @@ GMAppKit.h \
 GMArchiver.h \
 GSAnimator.h \
 GSTheme.h \
+GSNativeView.h \
 GSFontInfo.h \
 GSMemoryPanel.h \
 GSInfoPanel.h \
