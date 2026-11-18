@@ -80,7 +80,7 @@
 
 static NSNotificationCenter *nc = nil;
 
-static const int currentVersion = 6;
+static const int currentVersion = 7;
 
 static NSRect oldDraggingRect;
 static NSInteger oldDropRow;
@@ -2069,6 +2069,9 @@ static void computeNewSelection
   _allowsColumnResizing = YES;
   _allowsColumnReordering = YES;
   _autoresizesAllColumnsToFit = NO;
+  /* GNUstep has always resized only the last column; that is also the
+   * behaviour of NSTableViewLastColumnOnlyAutoresizingStyle. */
+  _columnAutoresizingStyle = NSTableViewLastColumnOnlyAutoresizingStyle;
   _selectingColumns = NO;
   _verticalMotionDrag = NO;
   _editedColumn = -1;
@@ -4644,7 +4647,10 @@ This method is deprecated, use -columnIndexesInRect:. */
 
 - (void) setAutoresizesAllColumnsToFit: (BOOL)flag
 {
+  /* The deprecated flag maps onto the two styles it corresponds to. */
   _autoresizesAllColumnsToFit = flag;
+  _columnAutoresizingStyle = flag ? NSTableViewUniformColumnAutoresizingStyle
+                                  : NSTableViewLastColumnOnlyAutoresizingStyle;
 }
 
 - (BOOL) autoresizesAllColumnsToFit
@@ -4654,13 +4660,16 @@ This method is deprecated, use -columnIndexesInRect:. */
 
 - (NSTableViewColumnAutoresizingStyle) columnAutoresizingStyle
 {
-  // FIXME
-  return NSTableViewNoColumnAutoresizing;
+  return _columnAutoresizingStyle;
 }
 
+/* Keep the public style as well as its deprecated all-columns flag. */
 - (void) setColumnAutoresizingStyle: (NSTableViewColumnAutoresizingStyle)style
 {
-  // FIXME
+  _columnAutoresizingStyle = style;
+  _autoresizesAllColumnsToFit = (style == NSTableViewUniformColumnAutoresizingStyle
+    || style == NSTableViewSequentialColumnAutoresizingStyle
+    || style == NSTableViewReverseSequentialColumnAutoresizingStyle);
 }
 
 - (void) sizeLastColumnToFit
@@ -5731,6 +5740,7 @@ This method is deprecated, use -columnIndexesInRect:. */
       [aCoder encodeFloat: intercellSpacing.width forKey: @"NSIntercellSpacingWidth"];
       [aCoder encodeFloat: [self rowHeight] forKey: @"NSRowHeight"];
       [aCoder encodeObject: [self tableColumns] forKey: @"NSTableColumns"];
+      [aCoder encodeInteger: _columnAutoresizingStyle forKey: @"NSColumnAutoresizingStyle"];
 
       if (_headerView)
 	{
@@ -5801,6 +5811,7 @@ This method is deprecated, use -columnIndexesInRect:. */
       [aCoder encodeValueOfObjCType: @encode(BOOL) at: &_verticalMotionDrag];
       [aCoder encodeObject: _sortDescriptors];
       [aCoder encodeValueOfObjCType: @encode(BOOL) at: &_viewBased];
+      [aCoder encodeValueOfObjCType: @encode(NSUInteger) at: &_columnAutoresizingStyle];
     }
 }
 
@@ -5809,6 +5820,7 @@ This method is deprecated, use -columnIndexesInRect:. */
   self = [super initWithCoder: aDecoder];
   if (!self)
     return self;
+  _columnAutoresizingStyle = NSTableViewLastColumnOnlyAutoresizingStyle;
 
   if ([aDecoder allowsKeyedCoding])
     {
@@ -5933,6 +5945,12 @@ This method is deprecated, use -columnIndexesInRect:. */
 	  ASSIGN(_sortDescriptors, [aDecoder decodeObjectForKey: @"NSSortDescriptors"]);
 	}
 
+      if ([aDecoder containsValueForKey: @"NSColumnAutoresizingStyle"])
+	{
+	  [self setColumnAutoresizingStyle:
+	    [aDecoder decodeIntegerForKey: @"NSColumnAutoresizingStyle"]];
+	}
+
       if ([aDecoder containsValueForKey: @"NSTvFlags"])
 	{
 	  unsigned int flags = [aDecoder decodeIntForKey: @"NSTvFlags"];
@@ -6016,6 +6034,7 @@ This method is deprecated, use -columnIndexesInRect:. */
       if (version >= 2)
 	{
 	  [aDecoder decodeValueOfObjCType: @encode(BOOL) at: &_autoresizesAllColumnsToFit];
+	  [self setAutoresizesAllColumnsToFit: _autoresizesAllColumnsToFit];
 	}
 
       if (version >= 4)
@@ -6032,6 +6051,12 @@ This method is deprecated, use -columnIndexesInRect:. */
 	{
 	  [aDecoder decodeValueOfObjCType: @encode(BOOL) at: &_viewBased];
 	}
+      if (version >= 7)
+        {
+          NSUInteger style;
+          [aDecoder decodeValueOfObjCType: @encode(NSUInteger) at: &style];
+          [self setColumnAutoresizingStyle: style];
+        }
 
       if (_numberOfColumns > 0)
 	{
@@ -6379,101 +6404,66 @@ This method is deprecated, use -columnIndexesInRect:. */
 
 - (void) superviewFrameChanged: (NSNotification*)aNotification
 {
-  if (_autoresizesAllColumnsToFit == YES)
+  CGFloat visibleWidth = NSWidth([self convertRect: [_super_view bounds]
+                                         fromView: _super_view]);
+  CGFloat tableWidth = 0;
+  NSInteger i;
+  for (i = 0; i < _numberOfColumns; i++)
+    tableWidth += [[_tableColumns objectAtIndex: i] width];
+
+  /* Preserve deliberate horizontal overflow until the viewport crosses the
+   * table's width. Once fitted, subsequent resizes keep the table fitted. */
+  BOOL fit = fabs(tableWidth - _superview_width) <= .001
+    || (tableWidth <= _superview_width && tableWidth >= visibleWidth)
+    || (tableWidth >= _superview_width && tableWidth <= visibleWidth);
+  _superview_width = visibleWidth;
+  if (fit && _columnAutoresizingStyle != NSTableViewNoColumnAutoresizing)
     {
-      CGFloat visible_width = [self convertRect: [_super_view bounds]
-				  fromView: _super_view].size.width;
-      CGFloat table_width = 0;
-
-      if (_numberOfColumns > 0)
-	{
-	  table_width =
-	    _columnOrigins[_numberOfColumns - 1] +
-	    [[_tableColumns objectAtIndex: _numberOfColumns - 1] width];
-	}
-
-      /*
-	NSLog(@"columnOrigins[0] %f", _columnOrigins[0]);
-	NSLog(@"superview.bounds %@",
-	      NSStringFromRect([_super_view bounds]));
-	NSLog(@"superview.frame %@",
-	      NSStringFromRect([_super_view frame]));
-	NSLog(@"table_width %f", table_width);
-	NSLog(@"width %f", visible_width);
-	NSLog(@"_superview_width %f", _superview_width);
-      */
-
-      if (table_width - _superview_width <= 0.001
-	   && table_width - _superview_width >= -0.001)
-	{
-	  // the last column had been sized to fit
-	  [self sizeToFit];
-	}
-      else if (table_width <= _superview_width
-		&& table_width >= visible_width)
-	{
-	  // the tableView was too small and is now too large
-	  [self sizeToFit];
-	}
-      else if (table_width >= _superview_width
-	       && table_width <= visible_width)
-	{
-	  // the tableView was too large and is now too small
-	  if (_numberOfColumns > 0)
-	    [self scrollColumnToVisible: 0];
-	  [self sizeToFit];
-	}
-      _superview_width = visible_width;
+      CGFloat remaining = visibleWidth - tableWidth;
+      if (_columnAutoresizingStyle == NSTableViewUniformColumnAutoresizingStyle)
+        {
+          /* Share each increment equally; redistribute what a bounded column
+           * cannot accept among the columns that still have room. */
+          for (NSInteger pass = 0; pass < _numberOfColumns && fabs(remaining) > .001; pass++)
+            {
+              NSInteger eligible = 0;
+              for (NSTableColumn *column in _tableColumns)
+                if (([column resizingMask] & NSTableColumnAutoresizingMask) && (remaining > 0
+                    ? [column width] < [column maxWidth] : [column width] > [column minWidth])) eligible++;
+              if (!eligible) break;
+              CGFloat share = remaining / eligible;
+              for (NSTableColumn *column in _tableColumns)
+                if (([column resizingMask] & NSTableColumnAutoresizingMask))
+                  {
+                    CGFloat width = [column width];
+                    CGFloat next = MIN([column maxWidth], MAX([column minWidth], width + share));
+                    [column setWidth: next];
+                    remaining -= [column width] - width;
+                  }
+            }
+        }
+      else
+        {
+          BOOL forward = _columnAutoresizingStyle == NSTableViewFirstColumnOnlyAutoresizingStyle
+            || _columnAutoresizingStyle == NSTableViewReverseSequentialColumnAutoresizingStyle;
+          BOOL onlyOne = _columnAutoresizingStyle == NSTableViewFirstColumnOnlyAutoresizingStyle
+            || _columnAutoresizingStyle == NSTableViewLastColumnOnlyAutoresizingStyle;
+          for (NSInteger step = 0; step < _numberOfColumns && fabs(remaining) > .001; step++)
+            {
+              NSTableColumn *column = [_tableColumns objectAtIndex: forward ? step : _numberOfColumns - step - 1];
+              if (([column resizingMask] & NSTableColumnAutoresizingMask))
+                {
+                  CGFloat width = [column width];
+                  CGFloat next = MIN([column maxWidth], MAX([column minWidth], width + remaining));
+                  [column setWidth: next];
+                  remaining -= [column width] - width;
+                }
+              if (onlyOne) break;
+            }
+        }
     }
-  else
-    {
-      CGFloat visible_width = [self convertRect: [_super_view bounds]
-				  fromView: _super_view].size.width;
-      CGFloat table_width = 0;
-
-      if (_numberOfColumns > 0)
-	{
-	  table_width =
-	    _columnOrigins[_numberOfColumns - 1] +
-	    [[_tableColumns objectAtIndex: _numberOfColumns - 1] width];
-	}
-
-      /*
-	NSLog(@"columnOrigins[0] %f", _columnOrigins[0]);
-	NSLog(@"superview.bounds %@",
-	      NSStringFromRect([_super_view bounds]));
-	NSLog(@"superview.frame %@",
-	      NSStringFromRect([_super_view frame]));
-	NSLog(@"table_width %f", table_width);
-	NSLog(@"width %f", visible_width);
-	NSLog(@"_superview_width %f", _superview_width);
-      */
-
-      if (table_width - _superview_width <= 0.001
-	   && table_width - _superview_width >= -0.001)
-	{
-	  // the last column had been sized to fit
-	  [self sizeLastColumnToFit];
-	}
-      else if (table_width <= _superview_width
-		&& table_width >= visible_width)
-	{
-	  // the tableView was too small and is now too large
-	  [self sizeLastColumnToFit];
-	}
-      else if (table_width >= _superview_width
-	       && table_width <= visible_width)
-	{
-	  // the tableView was too large and is now too small
-	  if (_numberOfColumns > 0)
-	    [self scrollColumnToVisible: 0];
-	  [self sizeLastColumnToFit];
-	}
-      _superview_width = visible_width;
-    }
-  [self setFrame:_frame];
+  [self setFrame: _frame];
 }
-
 
 - (NSDragOperation) draggingSourceOperationMaskForLocal: (BOOL)isLocal
 {
