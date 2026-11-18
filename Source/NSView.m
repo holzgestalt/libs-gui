@@ -53,12 +53,13 @@ void GSDrawNativeView(NSView *view, NSRect rect)
 }
 void GSSetNativeViewPeer(NSView *view, id<GSNativeViewPeer> peer)
 {
-  if (!view) return;
+  if (!view || [nativeViewPeers objectForKey:view] == peer) return;
   if (!nativeViewPeers && peer)
     nativeViewPeers = [[NSMapTable alloc] initWithKeyOptions:NSPointerFunctionsWeakMemory | NSPointerFunctionsObjectPointerPersonality
       valueOptions:NSPointerFunctionsWeakMemory capacity:32];
   if (peer) [nativeViewPeers setObject:peer forKey:view];
   else [nativeViewPeers removeObjectForKey:view];
+  [view nativeViewPeerDidChange];
 }
 id<GSNativeViewPeer> GSNativeViewPeerForView(NSView *view)
 { return [nativeViewPeers objectForKey:view]; }
@@ -6074,4 +6075,8 @@ cmpFrame(id view1, id view2, void *context)
   ASSIGN(_shadow, shadow);
 }
 
+@end
+
+@implementation NSView (GSNativeViewLifecycle)
+- (void)nativeViewPeerDidChange {}
 @end
