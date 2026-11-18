@@ -1,3 +1,4 @@
+#import "GSDefaultTheme.h"
 /** <title>GSThemeOpenSavePanels</title>
 
    <abstract>Methods for themes using open and save panels.</abstract>
@@ -6,7 +7,7 @@
 
    Author: Gregory Casamento <greg.casamento@gmail.com>
    Date: 2010
-   
+
    This file is part of the GNU Objective C User interface library.
 
    This library is free software; you can redistribute it and/or
@@ -21,8 +22,8 @@
 
    You should have received a copy of the GNU Lesser General Public
    License along with this library; see the file COPYING.LIB.
-   If not, see <http://www.gnu.org/licenses/> or write to the 
-   Free Software Foundation, 51 Franklin Street, Fifth Floor, 
+   If not, see <http://www.gnu.org/licenses/> or write to the
+   Free Software Foundation, 51 Franklin Street, Fifth Floor,
    Boston, MA 02110-1301, USA.
 */
 
@@ -30,11 +31,11 @@
 #import "AppKit/NSSavePanel.h"
 #import "GNUstepGUI/GSTheme.h"
 
-@implementation GSTheme (OpenSavePanels)
+@implementation GSDefaultTheme (OpenSavePanels)
 /**
  * This method returns the open panel class needed by the
  * native environment.
- */ 
+ */
 - (Class) openPanelClass
 {
   return [NSOpenPanel class];
@@ -43,7 +44,7 @@
 /**
  * This method returns the open panel class needed by the
  * native environment.
- */ 
+ */
 - (Class) savePanelClass
 {
   return [NSSavePanel class];

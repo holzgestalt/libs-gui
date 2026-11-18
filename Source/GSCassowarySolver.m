@@ -77,6 +77,11 @@
 - (void) dualOptimize;
 
 - (void) setExternalVariables;
+- (GSCSVariable *) objectiveForStrength: (GSCSStrength *)strength;
+- (BOOL) isObjective: (GSCSVariable *)variable;
+- (NSComparisonResult) compareObjectiveColumn: (GSCSVariable *)a divisor: (CGFloat)da
+                                    toColumn: (GSCSVariable *)b divisor: (CGFloat)db;
+- (void) optimizePriorityLevels;
 
 @end
 
@@ -127,10 +132,109 @@
     }
 }
 
+- (void) enablePriorityLevels
+{
+  if (_objectivesByPriority == nil)
+    _objectivesByPriority = [[NSMutableDictionary alloc] init];
+}
+
+- (GSCSVariable *) objectiveForStrength: (GSCSStrength *)strength
+{
+  if (_objectivesByPriority == nil)
+    return [_tableau objective];
+  NSNumber *priority = [NSNumber numberWithDouble: [strength strength]];
+  GSCSVariable *objective = [_objectivesByPriority objectForKey: priority];
+  if (objective == nil)
+    {
+      objective = [GSCSVariable objectiveVariableWithName:
+        [NSString stringWithFormat: @"priority%@", priority]];
+      [_objectivesByPriority setObject: objective forKey: priority];
+      [_tableau addRowForVariable: objective equalsExpression:
+        AUTORELEASE([[GSCSLinearExpression alloc] initWithConstant: 0])];
+      NSMutableArray *ordered = [NSMutableArray array];
+      NSEnumerator *keys = [[[_objectivesByPriority allKeys]
+        sortedArrayUsingSelector: @selector(compare:)] reverseObjectEnumerator];
+      NSNumber *key;
+      while ((key = [keys nextObject]) != nil)
+        [ordered addObject: [_objectivesByPriority objectForKey: key]];
+      ASSIGN(_priorityObjectives, ordered);
+    }
+  return objective;
+}
+
+- (BOOL) isObjective: (GSCSVariable *)variable
+{
+  return variable == [_tableau objective] || [_priorityObjectives containsObject: variable];
+}
+
+/* Compare vectors of objective coefficients lexicographically. Keeping one
+   tableau row per priority avoids both finite-weight tradeoffs and enormous
+   weights that lose adjacent priority differences through cancellation. */
+- (NSComparisonResult) compareObjectiveColumn: (GSCSVariable *)a divisor: (CGFloat)da
+                                    toColumn: (GSCSVariable *)b divisor: (CGFloat)db
+{
+  FOR_IN(GSCSVariable *, objective, _priorityObjectives)
+    GSCSLinearExpression *row = [_tableau rowExpressionForVariable: objective];
+    CGFloat left = a == nil ? 0 : [row coefficientForTerm: a] / da;
+    CGFloat right = b == nil ? 0 : [row coefficientForTerm: b] / db;
+    if (![GSCSFloatComparator isApproxiatelyEqual: left b: right])
+      return left < right ? NSOrderedAscending : NSOrderedDescending;
+  END_FOR_IN(_priorityObjectives);
+  return NSOrderedSame;
+}
+
+- (void) optimizePriorityLevels
+{
+  while (YES)
+    {
+      NSMutableSet *variables = [NSMutableSet set];
+      FOR_IN(GSCSVariable *, objective, _priorityObjectives)
+        [variables addObjectsFromArray: [[_tableau rowExpressionForVariable: objective] termVariables]];
+      END_FOR_IN(_priorityObjectives);
+      GSCSVariable *entry = nil;
+      FOR_IN(GSCSVariable *, variable, variables)
+        if ([variable isPivotable] &&
+            [self compareObjectiveColumn: variable divisor: 1 toColumn: entry divisor: 1] == NSOrderedAscending)
+          entry = variable;
+      END_FOR_IN(variables);
+      if (entry == nil) return;
+      GSCSVariable *exit = [_tableau findPivotableExitVariable: entry];
+      if (exit == nil)
+        [NSException raise: NSInternalInconsistencyException format: @"Priority objective is unbounded"];
+      [_tableau pivotWithEntryVariable: entry exitVariable: exit];
+    }
+}
+
 - (void) resolve
 {
+  if (_updateDepth > 0)
+    {
+      _needsResolve = YES;
+      return;
+    }
+  _needsResolve = NO;
   [self optimize: [_tableau objective]];
   [self setExternalVariables];
+}
+
+- (void) beginUpdates
+{
+  _updateDepth++;
+}
+
+- (void) forgetUnusedVariable: (GSCSVariable *)variable
+{
+  if ([_tableau rowExpressionForVariable: variable] == nil
+      && ![_tableau hasColumnForVariable: variable])
+    [_externalVariables removeObject: variable];
+}
+
+- (void) endUpdates
+{
+  NSAssert(_updateDepth > 0, @"Unbalanced solver updates");
+  _updateDepth--;
+  if (_updateDepth == 0 && _needsResolve)
+    [self resolve];
 }
 
 - (void) addConstraint: (GSCSConstraint *)constraint
@@ -165,7 +269,7 @@
       return;
     }
 
-  GSCSVariable *objective = [_tableau objective];
+  GSCSVariable *objective = [self objectiveForStrength: [constraint strength]];
   GSCSLinearExpression *objectiveRow =
     [_tableau rowExpressionForVariable: objective];
 
@@ -173,7 +277,7 @@
   NSArray *errors = [_errorVariables objectForKey: constraint];
   if (errors != nil)
     {
-      CGFloat weight = [[constraint strength] strength];
+      CGFloat weight = _objectivesByPriority == nil ? [[constraint strength] strength] : 1;
       FOR_IN(GSCSVariable *, errorVariable, errors)
         GSCSLinearExpression *errorRow =
           [_tableau rowExpressionForVariable: errorVariable];
@@ -417,13 +521,11 @@
 - (void) addErrorVariable: (GSCSVariable *)variable
                  strength: (GSCSStrength *)strength
 {
-  GSCSVariable *objective = [_tableau objective];
-  GSCSLinearExpression *objectiveRow =
-    [_tableau rowExpressionForVariable: objective];
-  [_tableau addVariable: variable
-           toExpression: objectiveRow
-        withCoefficient: [strength strength]
-                subject: objective];
+  GSCSVariable *objective = [self objectiveForStrength: strength];
+  GSCSLinearExpression *objectiveRow = [_tableau rowExpressionForVariable: objective];
+  [_tableau addVariable: variable toExpression: objectiveRow
+       withCoefficient: _objectivesByPriority == nil ? [strength strength] : 1
+               subject: objective];
 }
 
 - (BOOL) tryAddingDirectly: (GSCSLinearExpression *)expression
@@ -452,7 +554,6 @@
   GSCSVariable *subject = nil;
   BOOL foundUnrestricted = NO;
   BOOL foundNewRestricted = NO;
-  GSCSVariable *objective = [_tableau objective];
   NSArray *termVariables = [expression termVariables];
 
   FOR_IN(GSCSVariable *, variable, termVariables)
@@ -474,9 +575,11 @@
             if (!foundNewRestricted && ![variable isDummy] && coefficient < 0.0)
               {
                 NSSet *column = [_tableau columnForVariable: variable];
-                if (column == nil || [column count] == 0
-                    || ([column count] == 1
-                        && [column containsObject: objective]))
+                BOOL onlyObjectives = YES;
+                FOR_IN(GSCSVariable *, row, column)
+                  if (![self isObjective: row]) onlyObjectives = NO;
+                END_FOR_IN(column);
+                if (onlyObjectives)
                   {
                     subject = variable;
                     foundNewRestricted = YES;
@@ -624,9 +727,8 @@
       return exitVariable;
     }
 
-  GSCSVariable *objective = [_tableau objective];
   FOR_IN(GSCSVariable *, variable, column)
-    if (variable != objective)
+    if (![self isObjective: variable])
       {
         exitVariable = variable;
       }
@@ -639,6 +741,11 @@
 // pivotable column with the most negative coefficient.
 - (void) optimize: (GSCSVariable *)objective
 {
+  if (_objectivesByPriority != nil && objective == [_tableau objective])
+    {
+      [self optimizePriorityLevels];
+      return;
+    }
   GSCSLinearExpression *objectiveRow =
     [_tableau rowExpressionForVariable: objective];
 
@@ -812,7 +919,10 @@
           {
             CGFloat ratio =
               [objectiveRow coefficientForTerm: variable] / coefficient;
-            if (ratio < minRatio)
+            BOOL better = _objectivesByPriority == nil ? ratio < minRatio
+              : entryVariable == nil || [self compareObjectiveColumn: variable divisor: coefficient
+                  toColumn: entryVariable divisor: [expression coefficientForTerm: entryVariable]] == NSOrderedAscending;
+            if (better)
               {
                 minRatio = ratio;
                 entryVariable = variable;
@@ -857,6 +967,8 @@
   RELEASE(_markerVariables);
   RELEASE(_errorVariables);
   RELEASE(_externalVariables);
+  RELEASE(_objectivesByPriority);
+  RELEASE(_priorityObjectives);
   [super dealloc];
 }
 

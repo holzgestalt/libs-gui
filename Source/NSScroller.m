@@ -547,6 +547,11 @@ static float	buttonsOffset = 1.0; // buttonsWidth = sw - 2*buttonsOffset
     }
 }
 
+- (BOOL) isEnabled
+{
+  return _scFlags.isEnabled;
+}
+
 - (void) setEnabled: (BOOL)flag
 {
   if (_scFlags.isEnabled == flag)
@@ -1090,6 +1095,9 @@ static float	buttonsOffset = 1.0; // buttonsWidth = sw - 2*buttonsOffset
  */
 - (void) drawRect: (NSRect)rect
 {
+  if ([[GSTheme theme] drawNativeScroller: self dirtyRect: rect])
+    return;
+
   if (!_scFlags.isEnabled)
     {
       NSRect rect1 = NSIntersectionRect(rect, NSInsetRect(_bounds,
@@ -1216,6 +1224,12 @@ static float	buttonsOffset = 1.0; // buttonsWidth = sw - 2*buttonsOffset
  */
 - (NSRect) rectForPart: (NSScrollerPart)partCode
 {
+  NSRect nativeRect;
+  if ([[GSTheme theme] getScrollerRect: &nativeRect
+                              forPart: partCode
+                           inScroller: self])
+    return nativeRect;
+
   NSRect scrollerFrame = _frame;
   CGFloat x, y;
   CGFloat width, height;

@@ -800,6 +800,8 @@ static NSNotificationCenter *nc = nil;
 
       key = [NSString stringWithFormat: @"NSWindow Frame %@", name];
       [[NSUserDefaults standardUserDefaults] removeObjectForKey: key];
+      [[NSUserDefaults standardUserDefaults] removeObjectForKey:
+        [key stringByAppendingString: @" Scale"]];
     }
 }
 
@@ -1048,7 +1050,7 @@ many times.
 
   _windowNum = [srv window: _frame
                     : _backingType
-                    : _styleMask
+                    : [_wv backendWindowStyleMask]
                     : [_screen screenNumber]];
   if (_windowNum == 0)
     {
@@ -1343,6 +1345,7 @@ many times.
 
   if (_contentView != nil)
     {
+      [_layoutEngine pinContentView: _contentView];
       [_wv setContentView: _contentView];
     }
 }
@@ -1993,7 +1996,8 @@ titleWithRepresentedFilename(NSString *representedFilename)
       otherWin = -1;
     }
 
-  [srv orderwindow: place : otherWin : _windowNum];
+  if (![_wv orderNativeWindow: place relativeTo: otherWin])
+    [srv orderwindow: place : otherWin : _windowNum];
   if (display)
     {
       [self display];
@@ -2396,7 +2400,8 @@ titleWithRepresentedFilename(NSString *representedFilename)
 {
   if (_windowNum)
     {
-      [GSServerForWindow(self) placewindow: frameRect : _windowNum];
+      if (![_wv placeNativeWindow: frameRect])
+        [GSServerForWindow(self) placewindow: frameRect : _windowNum];
     }
   else
     {
@@ -2690,6 +2695,9 @@ titleWithRepresentedFilename(NSString *representedFilename)
     {
       return;
     }
+
+  if (_layoutEngine != nil)
+    [self layoutIfNeeded];
 
   if (_f.views_need_display)
     {
@@ -3465,7 +3473,8 @@ checkCursorRectanglesExited(NSView *theView,  NSEvent *theEvent, NSPoint lastPoi
       RELEASE(v);
     }
   [self _lossOfKeyOrMainWindow];
-  [srv miniwindow: _windowNum];
+  if (![_wv miniaturizeNativeWindow])
+    [srv miniwindow: _windowNum];
   _f.visible = NO;
 
   /*
@@ -3748,6 +3757,9 @@ checkCursorRectanglesExited(NSView *theView,  NSEvent *theEvent, NSPoint lastPoi
 {
   if (_firstResponder == aResponder)
     {
+      if ([aResponder isKindOfClass: viewClass]
+          && [(NSView *)aResponder isDescendantOf: _contentView])
+        [_wv focusAppKitContent];
       return YES;
     }
 
@@ -3785,6 +3797,9 @@ checkCursorRectanglesExited(NSView *theView,  NSEvent *theEvent, NSPoint lastPoi
       [_firstResponder becomeFirstResponder];
     }
 
+  if ([_firstResponder isKindOfClass: viewClass]
+      && [(NSView *)_firstResponder isDescendantOf: _contentView])
+    [_wv focusAppKitContent];
   return YES;
 }
 
@@ -4181,6 +4196,13 @@ checkCursorRectanglesExited(NSView *theView,  NSEvent *theEvent, NSPoint lastPoi
       NSDebugLLog(@"NSEvent", @"Discard (window ignoring mouse) %@", theEvent);
       return;
     }
+
+  // Native hosts do not receive pointer events delivered directly to the
+  // backend child. Hand focus back even when the clicked editor is already
+  // AppKit's first responder (or a button deliberately leaves it unchanged).
+  if (type == NSLeftMouseDown || type == NSRightMouseDown
+      || type == NSOtherMouseDown)
+    [_wv focusAppKitContent];
 
   switch (type)
     {
@@ -5159,6 +5181,8 @@ current key view.<br />
   obj = [self stringWithSavedFrame];
   key = [NSString stringWithFormat: @"NSWindow Frame %@", name];
   [defs setObject: obj forKey: key];
+  [defs setFloat: [self userSpaceScaleFactor]
+         forKey: [key stringByAppendingString: @" Scale"]];
 }
 
 - (BOOL) setFrameAutosaveName: (NSString*)name
@@ -5367,6 +5391,26 @@ current key view.<br />
       return NO;
     }
 
+  CGFloat savedScale = [defs floatForKey:
+    [key stringByAppendingString: @" Scale"]];
+  /* Legacy records were written before desktop scaling was detected. */
+  if (savedScale <= 0) savedScale = 1.0;
+  CGFloat scale = [self userSpaceScaleFactor] / savedScale;
+  if (scale != 1.0)
+    {
+      NSScanner *scanner = [NSScanner scannerWithString: obj];
+      int x, y, width, height;
+      if ([scanner scanInt: &x] && [scanner scanInt: &y]
+        && [scanner scanInt: &width] && [scanner scanInt: &height])
+        {
+          /* Frame strings use device pixels. Retain logical size and the
+           * top edge; leave screen geometry for the existing parser. */
+          obj = [NSString stringWithFormat: @"%d %d %d %d %@", x,
+            y - (int)round(height * (scale - 1.0)),
+            (int)round(width * scale), (int)round(height * scale),
+            [obj substringFromIndex: [scanner scanLocation]]];
+        }
+    }
   [self setFrameFromString: obj];
   return YES;
 }

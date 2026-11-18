@@ -1,3 +1,4 @@
+#import "GSClassicTheme.h"
 /** <title>GSThemeWindow</title>
 
    <abstract>The theme methods for window specific functions</abstract>
@@ -6,7 +7,7 @@
 
    Author: Gregory Casamento <greg.casamento@gmail.com>
    Date: Jun 2015
-   
+
    This file is part of the GNU Objective C User interface library.
 
    This library is free software; you can redistribute it and/or
@@ -21,8 +22,8 @@
 
    You should have received a copy of the GNU Lesser General Public
    License along with this library; see the file COPYING.LIB.
-   If not, see <http://www.gnu.org/licenses/> or write to the 
-   Free Software Foundation, 51 Franklin Street, Fifth Floor, 
+   If not, see <http://www.gnu.org/licenses/> or write to the
+   Free Software Foundation, 51 Franklin Street, Fifth Floor,
    Boston, MA 02110-1301, USA.
 */
 
@@ -35,7 +36,7 @@
 #import "GSThemePrivate.h"
 #import "GNUstepGUI/GSDisplayServer.h"
 
-@implementation GSTheme (NSWindow)
+@implementation GSClassicTheme (NSWindow)
 - (NSButton *) standardWindowButton: (NSWindowButton)button
 		       forStyleMask: (NSUInteger) mask
 {
@@ -47,7 +48,7 @@
   [newButton setImagePosition: NSImageOnly];
   [newButton setBordered: YES];
   [newButton setTag: button];
-  
+
   switch (button)
     {
       case NSWindowCloseButton:

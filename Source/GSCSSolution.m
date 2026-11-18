@@ -38,7 +38,7 @@
 
 - (void) setResult: (CGFloat)result forVariable: (GSCSVariable *)variable
 {
-  NSNumber *encodedResult = [NSNumber numberWithFloat: result];
+  NSNumber *encodedResult = [NSNumber numberWithDouble: result];
   [_resultsByVariable setObject: encodedResult forKey: variable];
 }
 
@@ -70,8 +70,8 @@
       return NO;
     }
 
-  return [GSCSFloatComparator isApproxiatelyEqual: [lhsResult floatValue]
-                                                b: [rhsResult floatValue]];
+  return [GSCSFloatComparator isApproxiatelyEqual: [lhsResult doubleValue]
+                                                b: [rhsResult doubleValue]];
 }
 
 - (BOOL) isEqualToCassowarySolverSolution: (GSCSSolution *)solution

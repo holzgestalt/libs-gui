@@ -48,6 +48,7 @@
 #import "NSDocumentFrameworkPrivate.h"
 
 #import "GSGuiPrivate.h"
+#import "GNUstepGUI/GSTheme.h"
 
 static inline NSError*
 create_error(int code, NSString* desc)
@@ -475,12 +476,17 @@ withContentsOfURL: (NSURL *)url
 
 - (BOOL) canCloseDocument
 {
-  int result;
+  NSInteger result;
 
   if (![self isDocumentEdited])
     return YES;
 
-  result = NSRunAlertPanel (_(@"Close"), 
+  if (![[GSTheme theme] runNativeDocumentSaveAlertWithTitle: _(@"Save Changes?")
+          message: [NSString stringWithFormat:
+            _(@"Changes to “%@” will be permanently lost if you don't save them."), [self displayName]]
+          buttons: [NSArray arrayWithObjects: _(@"Save"), _(@"Cancel"), _(@"Discard"), nil]
+          result: &result])
+    result = NSRunAlertPanel (_(@"Close"),
                             _(@"%@ has changed.  Save?"),
                             _(@"Save"), _(@"Cancel"), _(@"Don't Save"), 
                             [self displayName]);

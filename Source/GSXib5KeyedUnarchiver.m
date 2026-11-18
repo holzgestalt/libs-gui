@@ -33,6 +33,7 @@
  */
 
 #import "GSXib5KeyedUnarchiver.h"
+#import "GSFastEnumeration.h"
 #import "GNUstepGUI/GSNibLoading.h"
 #import "GNUstepGUI/GSXibLoading.h"
 #import "GNUstepGUI/GSXibElement.h"
@@ -269,6 +270,11 @@ static NSArray      *XmlBoolDefaultYes  = nil;
           XmlKeyMapTable = [NSDictionary dictionaryWithObjectsAndKeys:
                                            @"timeIntervalSinceReferenceDate", @"NS.time",
                                            @"identifier", @"NSUserInterfaceItemIdentifier",
+                                           @"translatesAutoresizingMaskIntoConstraints", @"NSTranslatesAutoresizingMaskIntoConstraints",
+                                           @"horizontalHuggingPriority", @"NSHorizontalHuggingPriority",
+                                           @"verticalHuggingPriority", @"NSVerticalHuggingPriority",
+                                           @"horizontalCompressionResistancePriority", @"NSHorizontalCompressionResistancePriority",
+                                           @"verticalCompressionResistancePriority", @"NSVerticalCompressionResistancePriority",
                                            @"isSeparatorItem", @"NSIsSeparator",
                                            @"customClass", @"NSClassName",
                                            @"catalog", @"NSCatalogName",
@@ -802,6 +808,18 @@ didStartElement: (NSString*)elementName
       NSString            *className   = nil;
       NSString            *elementType = elementName;
       NSString            *customClassName = nil;
+
+      /* An omitted firstItem refers to the view containing the constraints
+         array, rather than to a missing item. */
+      if ([elementName isEqualToString: @"constraint"]
+          && [attributes objectForKey: @"firstItem"] == nil
+          && [stack count] != 0)
+        {
+          GSXibElement *parent = [stack lastObject];
+          NSString *parentID = [parent attributeForKey: @"id"];
+          if (parentID != nil)
+            [attributes setObject: parentID forKey: @"firstItem"];
+        }
 
       // If we are in IB we don't want to handle custom classes since they are
       // not linked into the application.
@@ -3438,6 +3456,28 @@ didStartElement: (NSString*)elementName
 
 - (id) decodeObjectForKey: (NSString *)key
 {
+  /* Segment images are resource names in XML, but the cell expects NSImage.
+     The generic key alias would otherwise return the name string verbatim. */
+  if ([key isEqualToString: @"NSSegmentItemImage"])
+    return [self decodeSegmentItemImageForElement: currentElement];
+  if ([key isEqualToString: @"NSConstraints"])
+    {
+      GSXibElement *array = [currentElement elementForKey: @"constraints"];
+      NSMutableArray *constraints = [NSMutableArray array];
+      FOR_IN(GSXibElement *, element, [array values])
+        if (![[element attributeForKey: @"placeholder"] boolValue])
+          [constraints addObject: [self objectForXib: element]];
+      END_FOR_IN([array values]);
+      return constraints;
+    }
+  if ([key isEqualToString: @"NSMultiplier"])
+    {
+      NSString *value = [currentElement attributeForKey: @"multiplier"];
+      NSArray *ratio = [value componentsSeparatedByString: @":"];
+      if ([ratio count] == 2)
+        return [NSNumber numberWithDouble: [[ratio objectAtIndex: 0] doubleValue]
+          / [[ratio objectAtIndex: 1] doubleValue]];
+    }
   id object = [super decodeObjectForKey: key];
 
   // If no object is found, try some other cases before defaulting to remove 'NS' prefix if present...

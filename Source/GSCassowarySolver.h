@@ -39,7 +39,19 @@
   NSInteger _artificialCounter;
   NSInteger _slackCounter;
   NSInteger _dummyCounter;
+  /* Auto Layout priorities are ordered levels, rather than additive weights. */
+  NSMutableDictionary *_objectivesByPriority;
+  NSArray *_priorityObjectives;
+  NSUInteger _updateDepth;
+  BOOL _needsResolve;
 }
+
+- (void) enablePriorityLevels;
+
+/* Defer objective optimization until a group of related changes is complete. */
+- (void) beginUpdates;
+- (void) endUpdates;
+- (void) forgetUnusedVariable: (GSCSVariable *)variable;
 
 - (void) addConstraint: (GSCSConstraint*)constraint;
 

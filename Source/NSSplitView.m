@@ -57,6 +57,29 @@
 
 static NSNotificationCenter *nc = nil;
 
+/* Required dimensions on a frame-managed pane also constrain the divider.
+   Enforce these before setting any frame, so a restored collapsed proportion
+   never temporarily overlaps another pane or gives a scroll view zero width. */
+static CGFloat minimumPaneSize(NSView *view, BOOL vertical)
+{
+  CGFloat minimum = 0;
+  NSLayoutAttribute attribute = vertical ? NSLayoutAttributeWidth : NSLayoutAttributeHeight;
+  for (NSLayoutConstraint *constraint in [view constraints])
+    if ([constraint firstItem] == view && [constraint secondItem] == nil
+        && [constraint firstAttribute] == attribute
+        && [constraint priority] == NSLayoutPriorityRequired
+        && [constraint relation] != NSLayoutRelationLessThanOrEqual)
+      minimum = MAX(minimum, [constraint constant]);
+  return minimum;
+}
+
+static CGFloat constrainedPaneSize(NSView *view, BOOL vertical, CGFloat proposed,
+                                   CGFloat available)
+{
+  CGFloat minimum = minimumPaneSize(view, vertical);
+  return MAX(minimum, MIN(proposed, MAX(minimum, available)));
+}
+
 @implementation NSSplitView
 
 + (void) initialize
@@ -356,6 +379,18 @@ static NSNotificationCenter *nc = nil;
    divVertical: (CGFloat) divVertical
 {
   NSRect r1 = NSZeroRect;
+  CGFloat previousMinimum = minimumPaneSize(prev, _isVertical);
+  CGFloat nextMinimum = minimumPaneSize(v, _isVertical);
+  if (_isVertical)
+    {
+      if (previousMinimum > 0) p.x = MAX(p.x, NSMinX(bigRect) + previousMinimum + divHorizontal / 2);
+      if (nextMinimum > 0) p.x = MIN(p.x, NSMaxX(bigRect) - nextMinimum - divHorizontal / 2);
+    }
+  else
+    {
+      if (previousMinimum > 0) p.y = MAX(p.y, NSMinY(bigRect) + previousMinimum + divVertical / 2);
+      if (nextMinimum > 0) p.y = MIN(p.y, NSMaxY(bigRect) - nextMinimum - divVertical / 2);
+    }
 
   [nc postNotificationName: NSSplitViewWillResizeSubviewsNotification
                     object: self];
@@ -894,6 +929,11 @@ static NSNotificationCenter *nc = nil;
     }
 
   [subs getObjects: views];
+  CGFloat remainingMinimums[count + 1];
+  remainingMinimums[count] = 0;
+  for (i = count; i > 0; i--)
+    remainingMinimums[i - 1] = remainingMinimums[i]
+      + minimumPaneSize(views[i - 1], _isVertical);
 
   /* If we haven't managed to load any saved view proportions, compute
    * default proportions using the current view sizes.  */
@@ -967,6 +1007,10 @@ static NSNotificationCenter *nc = nil;
                * space.  */
               newHeight = NSHeight(_bounds) - running;
             }
+          if (remainingMinimums[0] > 0)
+            newHeight = constrainedPaneSize(views[i], NO, newHeight,
+              NSHeight(_bounds) - running - _dividerWidth * (count - i - 1)
+                - remainingMinimums[i + 1]);
 	  newRect = NSMakeRect(0.0, running, NSWidth(_bounds), newHeight);
 	  newRect = [self centerScanRect: newRect];
           running += newHeight + _dividerWidth;
@@ -998,6 +1042,10 @@ static NSNotificationCenter *nc = nil;
             {
               newWidth = NSWidth(_bounds) - running;
             }
+          if (remainingMinimums[0] > 0)
+            newWidth = constrainedPaneSize(views[i], YES, newWidth,
+              NSWidth(_bounds) - running - _dividerWidth * (count - i - 1)
+                - remainingMinimums[i + 1]);
 	  newRect = NSMakeRect(running, 0.0, newWidth, NSHeight(_bounds));
 	  newRect = [self centerScanRect: newRect];
           running += newWidth + _dividerWidth;
@@ -1235,6 +1283,14 @@ static inline NSPoint centerSizeInRect(NSSize innerSize, NSRect outerRect)
   next = [subs objectAtIndex: dividerIndex + 1];
   r = [prev frame];
   r1 = [next frame];
+  CGFloat previousMinimum = minimumPaneSize(prev, _isVertical);
+  CGFloat nextMinimum = minimumPaneSize(next, _isVertical);
+  if (previousMinimum > 0)
+    position = MAX(position, (_isVertical ? NSMinX(r) : NSMinY(r))
+      + previousMinimum + _dividerWidth / 2);
+  if (nextMinimum > 0)
+    position = MIN(position, (_isVertical ? NSMaxX(r1) : NSMaxY(r1))
+      - nextMinimum - _dividerWidth / 2);
   // Compute the old split position
   if (_isVertical == NO)
     {

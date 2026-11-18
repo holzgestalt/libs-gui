@@ -282,6 +282,13 @@ static inline NSRect RectWithSizeScaledByFactor(NSRect aRect, CGFloat factor)
   NSRect frame = [window frame];
   NSView *windowContentView = [_window contentView];
 
+  if (0 == ([window styleMask] & NSUnscaledWindowMask))
+    {
+      CGFloat factor = [window userSpaceScaleFactor];
+      NSRect aRect = RectWithSizeScaledByFactor([self frame], 1/factor);
+      [self setBoundsSize: aRect.size];
+    }
+
   frame.origin = NSZeroPoint;
   contentViewFrame = [object_getClass(self)
                          contentRectForFrameRect: frame
@@ -331,13 +338,6 @@ static inline NSRect RectWithSizeScaledByFactor(NSRect aRect, CGFloat factor)
 			       newToolbarViewHeight);
       [tv setFrame: toolbarRect];
       contentViewFrame.size.height -= newToolbarViewHeight;
-    }
-
-  if (0 == ([window styleMask] & NSUnscaledWindowMask))
-    {
-      CGFloat factor = [window userSpaceScaleFactor];
-      NSRect aRect = RectWithSizeScaledByFactor([self frame], 1/factor);
-      [self setBoundsSize: aRect.size];
     }
 
   if ([windowContentView superview] == self)
@@ -392,9 +392,6 @@ static inline NSRect RectWithSizeScaledByFactor(NSRect aRect, CGFloat factor)
  */
 - (void) setFrame: (NSRect)frameRect
 {
-  NSSize oldSize = _frame.size;
-  NSView *cv = [_window contentView];
-
   // Wouldn't it be better to rely on the autoresize mechanism?
   _autoresizes_subviews = NO;
   [super setFrame: frameRect];
@@ -403,10 +400,9 @@ static inline NSRect RectWithSizeScaledByFactor(NSRect aRect, CGFloat factor)
                     contentRectForFrameRect: frameRect
                     styleMask: [window styleMask]];
 
-  // Safety Check.
-  [cv setAutoresizingMask: NSViewWidthSizable | NSViewHeightSizable];
-  [cv resizeWithOldSuperviewSize: oldSize];
-
+  // layout computes the final content rectangle in logical coordinates.
+  // Resizing it first against the old device-pixel frame mixed coordinate
+  // spaces during a scale change and could make constrained widths negative.
   [self layout];
 }
 
@@ -422,6 +418,12 @@ static inline NSRect RectWithSizeScaledByFactor(NSRect aRect, CGFloat factor)
   if (windowNumber)
     [GSServerForWindow(window) titlewindow: title : windowNumber];
 }
+
+- (NSUInteger) backendWindowStyleMask { return [window styleMask]; }
+- (BOOL) orderNativeWindow: (NSInteger)place relativeTo: (NSInteger)other { return NO; }
+- (BOOL) placeNativeWindow: (NSRect)frame { return NO; }
+- (BOOL) miniaturizeNativeWindow { return NO; }
+- (void) focusAppKitContent {}
 
 - (void) setWindowNumber: (int)theWindowNumber
 {

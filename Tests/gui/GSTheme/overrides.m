@@ -63,13 +63,14 @@ int main(int argc, const char *argv[])
   base = AUTORELEASE([NSActionCell new]);
   [base setTag: 1];
   PASS([base tag] == 1, "base class returns the tag we set")
-  PASS(foundOriginal == 1, "base class executed override method")
+  PASS(foundOriginal == 0, "runtime theme cannot override the base class")
   
   sub = AUTORELEASE([MyCell new]);
   [sub setTag: 2];
   PASS([sub tag] == 2, "sub class returns the tag we set")
-  PASS(foundOriginal == 2, "subclass executed override method")
+  PASS(foundOriginal == 0, "runtime theme cannot override a subclass")
 
+  [theme release];
   END_SET("theme overrides")
 
   return 0;

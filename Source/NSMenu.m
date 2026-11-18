@@ -1458,7 +1458,12 @@ static BOOL menuBarVisible = YES;
   cellFrame = [[view window] convertRectToScreen: cellFrame];
   cellFrame.origin.x += point.x;
   cellFrame.origin.y += point.y;
-  
+
+  if ([[GSTheme theme] displayNativePopUpMenu: self
+                              atScreenRect: cellFrame
+                                 forWindow: w])
+    return;
+
   [[GSTheme theme] displayPopUpMenu: mr
                       withCellFrame: cellFrame
                   controlViewWindow: w

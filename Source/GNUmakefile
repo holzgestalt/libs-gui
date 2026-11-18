@@ -339,14 +339,9 @@ GSIconManager.m \
 GSImageMagickImageRep.m \
 GSNibLoading.m \
 GSTheme.m \
-GSThemeDrawing.m \
+GSDrawTiles.m \
+GSThemeSupport.m \
 GSThemeInspector.m \
-GSThemeMenu.m \
-GSThemeOpenSavePanels.m \
-GSThemePanel.m \
-GSThemePrintPanels.m \
-GSThemeTools.m \
-GSThemeWindow.m \
 GSTitleView.m \
 GSToolTips.m \
 GSToolbarView.m \

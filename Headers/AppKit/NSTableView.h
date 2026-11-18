@@ -208,6 +208,16 @@ APPKIT_EXPORT_CLASS
 
   /* NSTableRowView support */
   NSMutableDictionary *_rowViews;
+
+  /* Prefix sums for delegate-provided row heights, relative to bounds.origin.
+     Entry n is the start of row n; the last entry is the total height. */
+  CGFloat *_rowOrigins;
+  NSInteger _rowOriginsCapacity;
+  NSInteger _cachedRowOrigins;
+  NSMutableArray *_reusableRowViews;
+  NSMutableDictionary *_reusableCellViews;
+  id _nativeTableView;
+  BOOL _nativeTableViewDeclined;
 }
 
 /* Data Source */

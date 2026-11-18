@@ -2104,6 +2104,14 @@ static float menuBarHeight = 0.0;
       mainWindowMenuView = self;
     }
 
+  // Let a platform tracker own the input grab before AppKit captures it.
+  if ([[GSTheme theme] trackMenuView: self withEvent: event])
+    {
+      [nc postNotificationName: NSMenuDidEndTrackingNotification
+                        object: [self menu]];
+      return YES;
+    }
+
   // Capture the mouse so we get clicks outside the menus and
   // GNUstep windows.
   [_window _captureMouse: self];

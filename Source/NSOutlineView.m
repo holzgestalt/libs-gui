@@ -56,6 +56,8 @@
 #import "AppKit/NSImage.h"
 #import "AppKit/NSKeyValueBinding.h"
 #import "AppKit/NSOutlineView.h"
+#import "AppKit/NSTableCellView.h"
+#import "AppKit/NSTableRowView.h"
 #import "AppKit/NSScroller.h"
 #import "AppKit/NSTableColumn.h"
 #import "AppKit/NSTableHeaderView.h"
@@ -142,6 +144,7 @@ static NSImage *unexpandable  = nil;
 @end
 
 @interface NSTableView (Private)
+- (void) _updateRowViewSelection;
 - (NSView *) _renderedViewForPath: (NSIndexPath *)path;
 - (void) _setRenderedView: (NSView *)view forPath: (NSIndexPath *)path;
 - (id) _prototypeCellViewFromTableColumn: (NSTableColumn *)tb;
@@ -822,18 +825,6 @@ static NSImage *unexpandable  = nil;
  */
 - (void) reloadData
 {
-  // Refresh the views if it is view based...
-  if (_viewBased)
-    {
-      NSEnumerator *en = [[self subviews] objectEnumerator];
-      NSView *v = nil;
-
-      while ((v = [en nextObject]) != nil)
-	{
-	  [v removeFromSuperview];
-	}
-    }
-
   // release the old array
   if (_items != nil)
     {
@@ -871,6 +862,7 @@ static NSImage *unexpandable  = nil;
 {
   const SEL sel = @selector(outlineView:willDisplayCell:forTableColumn:item:);
 
+  _cachedRowOrigins = 0;
   if (_delegate)
     [nc removeObserver: _delegate name: nil object: self];
   _delegate = anObject;
@@ -1063,8 +1055,13 @@ static NSImage *unexpandable  = nil;
 
   if (_viewBased)
     {
-      [self _drawCellViewRow: rowIndex
-		    clipRect: aRect];
+      [self _drawCellViewRow: rowIndex clipRect: aRect];
+      if (_outlineTableColumn != nil)
+        [[GSTheme theme] drawOutlineCell: _outlineTableColumn
+                           outlineView: self item: [self itemAtRow: rowIndex]
+                           drawingRect: [self frameOfCellAtColumn:
+                             [_tableColumns indexOfObjectIdenticalTo: _outlineTableColumn] row: rowIndex]
+                              rowIndex: rowIndex];
     }
   else
     {
@@ -1076,23 +1073,9 @@ static NSImage *unexpandable  = nil;
 
 - (void) drawRect: (NSRect)aRect
 {
-  NSInteger index = 0;
-
-  if (_autoResizesOutlineColumn)
-    {
-      CGFloat widest = 0;
-      for (index = 0; index < _numberOfRows; index++)
-	{
-	  CGFloat offset = [self levelForRow: index] *
-	    [self indentationPerLevel];
-	  NSRect drawingRect = [self frameOfCellAtColumn: 0
-				     row: index];
-	  CGFloat length = drawingRect.size.width + offset;
-	  if (widest < length) widest = length;
-	}
-      // [_outlineTableColumn setWidth: widest];
-    }
-
+  /* Column sizing is handled separately. Scanning every row here serves no
+     drawing purpose and becomes quadratic with delegate-provided heights,
+     since frameOfCellAtColumn:row: sums the heights of preceding rows. */
   [super drawRect: aRect];
 }
 
@@ -1831,6 +1814,7 @@ Also returns the child index relative to this parent. */
  */
 - (void) _postSelectionIsChangingNotification
 {
+  [self _updateRowViewSelection];
   [nc postNotificationName:
 	NSOutlineViewSelectionIsChangingNotification
       object: self];
@@ -1838,6 +1822,7 @@ Also returns the child index relative to this parent. */
 
 - (void) _postSelectionDidChangeNotification
 {
+  [self _updateRowViewSelection];
   NSTableColumn *tb = [_tableColumns objectAtIndex: 0];
   GSKeyValueBinding *theBinding;
 
@@ -2583,44 +2568,76 @@ Also returns the child index relative to this parent. */
   return cell;
 }
 
+- (NSTableRowView *) _delegateRowViewForRow: (NSInteger)row
+{
+  if ([_delegate respondsToSelector: @selector(outlineView:rowViewForItem:)])
+    return [_delegate outlineView: self rowViewForItem: [self itemAtRow: row]];
+  return nil;
+}
+
+- (void) _didAddRowView: (NSTableRowView *)view forRow: (NSInteger)row
+{
+  if ([_delegate respondsToSelector: @selector(outlineView:didAddRowView:forRow:)])
+    [_delegate outlineView: self didAddRowView: view forRow: row];
+}
+
+- (void) _didRemoveRowView: (NSTableRowView *)view forRow: (NSInteger)row
+{
+  if ([_delegate respondsToSelector: @selector(outlineView:didRemoveRowView:forRow:)])
+    [_delegate outlineView: self didRemoveRowView: view forRow: row];
+}
+
+- (NSRect) _frameOfViewAtColumn: (NSInteger)column row: (NSInteger)row
+{
+  NSRect rect = [self frameOfCellAtColumn: column row: row];
+  if ([_tableColumns objectAtIndex: column] == _outlineTableColumn)
+    {
+      id item = [self itemAtRow: row];
+      NSImage *image = [NSImage imageNamed: [self isItemExpanded: item]
+        ? @"common_ArrowDownH" : @"common_ArrowRightH"];
+      if (![self isExpandable: item])
+        image = AUTORELEASE([[NSImage alloc] initWithSize: NSMakeSize(14,14)]);
+      NSCell *cell = AUTORELEASE([[NSCell alloc] initImageCell: image]);
+      if ([_delegate respondsToSelector: @selector(outlineView:willDisplayOutlineCell:forTableColumn:item:)])
+        [_delegate outlineView: self willDisplayOutlineCell: cell
+               forTableColumn: _outlineTableColumn item: item];
+      CGFloat indentation = [self indentationPerLevel] * [self levelForRow: row];
+      if ([cell image] != nil)
+        indentation += [[cell image] size].width + 5;
+      rect.origin.x += indentation;
+      rect.size.width = MAX(0, rect.size.width - indentation);
+    }
+  return rect;
+}
+
 - (NSView *) viewAtColumn: (NSInteger)column row: (NSInteger)row makeIfNecessary: (BOOL)flag
 {
-  NSTableColumn *tb = [_tableColumns objectAtIndex: column];
-  NSIndexPath *path = [NSIndexPath indexPathForItem: column
-					  inSection: row];
+  if (column < 0 || column >= _numberOfColumns || row < 0 || row >= _numberOfRows)
+    return nil;
+  NSIndexPath *path = [NSIndexPath indexPathForItem: column inSection: row];
   NSView *view = [self _renderedViewForPath: path];
-  NSRect drawingRect = [self frameOfCellAtColumn: column
-					     row: row];
   id item = [self itemAtRow: row];
 
-  if (tb == _outlineTableColumn)
+  if (view == nil && flag)
     {
-      drawingRect = [[GSTheme theme] drawOutlineCell: tb
-					 outlineView: self
-						item: item
-					 drawingRect: drawingRect
-					    rowIndex: row];
-    }
-
-  if (view == nil
-      && flag == YES)
-    {
+      NSTableColumn *tb = [_tableColumns objectAtIndex: column];
       if ([_delegate respondsToSelector: @selector(outlineView:viewForTableColumn:item:)])
-	{
-	  view = [_delegate outlineView: self
-		     viewForTableColumn: tb
-				   item: item];
-	}
+        view = [_delegate outlineView: self viewForTableColumn: tb item: item];
       else
-	{
-	  view = [self _prototypeCellViewFromTableColumn: tb];
-	}
-
+        view = [self _prototypeCellViewFromTableColumn: tb];
       [self _setRenderedView: view forPath: path];
     }
-
-  [view setFrame: drawingRect];
-
+  if (view != nil)
+    {
+      NSTableRowView *rowView = [self rowViewAtRow: row makeIfNecessary: flag];
+      NSRect rect = [self _frameOfViewAtColumn: column row: row];
+      rect.origin.y -= NSMinY([rowView frame]);
+      [view setFrame: rect];
+      if ([view isKindOfClass: [NSTableCellView class]])
+        [(NSTableCellView *)view setObjectValue: item];
+      if (rowView != nil && [view superview] != rowView)
+        [rowView addSubview: view];
+    }
   return view;
 }
 

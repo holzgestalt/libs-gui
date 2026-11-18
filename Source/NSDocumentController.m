@@ -47,6 +47,7 @@
 #import "AppKit/NSWorkspace.h"
 #import "NSDocumentFrameworkPrivate.h"
 #import "GSGuiPrivate.h"
+#import "GNUstepGUI/GSTheme.h"
 #import "GSBindingHelpers.h"
 
 static NSString *NSTypesKey             = @"NSTypes";
@@ -1098,6 +1099,9 @@ static BOOL _shouldClose = YES;
       return YES;
     }
   
+  if ([[GSTheme theme] usesIndividualDocumentSaveAlerts])
+    return [self closeAllDocuments];
+
   result = NSRunAlertPanel(title, _(@"You have unsaved documents"),
                            _(@"Review Unsaved"), 
                            cancelString, 
@@ -1139,6 +1143,12 @@ static BOOL _shouldClose = YES;
       return;
     }
   
+  if ([[GSTheme theme] usesIndividualDocumentSaveAlerts])
+    {
+      [self closeAllDocumentsWithDelegate: delegate
+                 didCloseAllSelector: didReviewAllSelector contextInfo: contextInfo];
+      return;
+    }
   // FIXME
   NSBeginAlertSheet(title, 
                     _(@"Review Unsaved"), 

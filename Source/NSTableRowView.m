@@ -23,8 +23,23 @@
 */
 
 #import "AppKit/NSTableRowView.h"
+#import "AppKit/NSColor.h"
+#import "AppKit/NSGraphics.h"
 
 @implementation NSTableRowView
+
+- (BOOL) isFlipped
+{
+  return YES;
+}
+
+- (void) drawRect: (NSRect)dirtyRect
+{
+  [self drawBackgroundInRect: dirtyRect];
+  if (_selected && _selectionHighlightStyle != NSTableViewSelectionHighlightStyleNone)
+    [self drawSelectionInRect: dirtyRect];
+  [self drawSeparatorInRect: dirtyRect];
+}
 
 - (void) dealloc
 {
@@ -39,12 +54,14 @@
 
 - (void) setEmphasized: (BOOL)flag
 {
+  if (_emphasized == flag) return;
   _emphasized = flag;
+  [self setNeedsDisplay: YES];
 }
 
 - (NSBackgroundStyle) interiorBackgroundStyle
 {
-  return _interiorBackgroundStyle;
+  return _selected && _emphasized ? NSBackgroundStyleDark : NSBackgroundStyleLight;
 }
 
 - (BOOL) isFloating
@@ -64,7 +81,9 @@
 
 - (void) setSelected: (BOOL)flag
 {
+  if (_selected == flag) return;
   _selected = flag;
+  [self setNeedsDisplay: YES];
 }
 
 - (NSTableViewSelectionHighlightStyle) selectionHighlightStyle
@@ -74,7 +93,9 @@
 
 - (void) setSelectionHighlightStyle: (NSTableViewSelectionHighlightStyle) selectionHighlightStyle
 {
+  if (_selectionHighlightStyle == selectionHighlightStyle) return;
   _selectionHighlightStyle = selectionHighlightStyle;
+  [self setNeedsDisplay: YES];
 }
 
 - (NSTableViewDraggingDestinationFeedbackStyle) draggingDestinationFeedbackStyle
@@ -119,7 +140,9 @@
 
 - (NSInteger) numberOfColumns
 {
-  return 0;
+  if ([[self superview] isKindOfClass: [NSTableView class]])
+    return [(NSTableView *)[self superview] numberOfColumns];
+  return [[self subviews] count];
 }
 
 - (NSColor *) backgroundColor
@@ -130,10 +153,16 @@
 - (void) setBackgroundColor: (NSColor *)color
 {
   ASSIGN(_backgroundColor, color);
+  [self setNeedsDisplay: YES];
 }
 
 - (void) drawBackgroundInRect: (NSRect)dirtyRect
 {
+  if (_backgroundColor != nil)
+    {
+      [_backgroundColor setFill];
+      NSRectFill(dirtyRect);
+    }
 }
 
 - (void) drawDraggingDestinationFeedbackInRect: (NSRect)dirtyRect
@@ -142,6 +171,9 @@
 
 - (void) drawSelectionInRect: (NSRect)dirtyRect
 {
+  [(_emphasized ? [NSColor selectedControlColor]
+                : [NSColor secondarySelectedControlColor]) setFill];
+  NSRectFill(dirtyRect);
 }
 
 - (void) drawSeparatorInRect: (NSRect)dirtyRect
@@ -150,7 +182,13 @@
 
 - (id) viewAtColumn: (NSInteger)column
 {
-  return nil;
+  if ([[self superview] isKindOfClass: [NSTableView class]])
+    {
+      NSTableView *table = (NSTableView *)[self superview];
+      return [table viewAtColumn: column row: [table rowForView: self] makeIfNecessary: NO];
+    }
+  NSArray *views = [self subviews];
+  return column >= 0 && column < [views count] ? [views objectAtIndex: column] : nil;
 }
 
 - (BOOL) isNextRowSelected

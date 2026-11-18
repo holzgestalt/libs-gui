@@ -152,7 +152,7 @@
 
 - (CGFloat) coefficientForTerm: (GSCSVariable *)variable
 {
-  return [[self multiplierForTerm: variable] floatValue];
+  return [[self multiplierForTerm: variable] doubleValue];
 }
 
 - (void) normalize
@@ -269,7 +269,7 @@
         {
           [_termVariables removeObject: variable];
         }
-      [_terms setObject: [NSNumber numberWithFloat: coefficient]
+      [_terms setObject: [NSNumber numberWithDouble: coefficient]
                  forKey: variable];
       [_termVariables addObject: variable];
     }

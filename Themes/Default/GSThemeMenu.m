@@ -1,3 +1,4 @@
+#import "GSDefaultTheme.h"
 /** <title>GSThemePanel</title>
 
    <abstract>Theme management utility</abstract>
@@ -6,7 +7,7 @@
 
    Author: Gregory John Casamento <greg.casamento@gmail.com>
    Date: 2010
-   
+
    This file is part of the GNU Objective C User interface library.
 
    This library is free software; you can redistribute it and/or
@@ -21,8 +22,8 @@
 
    You should have received a copy of the GNU Lesser General Public
    License along with this library; see the file COPYING.LIB.
-   If not, see <http://www.gnu.org/licenses/> or write to the 
-   Free Software Foundation, 51 Franklin Street, Fifth Floor, 
+   If not, see <http://www.gnu.org/licenses/> or write to the
+   Free Software Foundation, 51 Franklin Street, Fifth Floor,
    Boston, MA 02110-1301, USA.
 */
 
@@ -47,18 +48,6 @@
 - (void) _setMenu: (NSMenu *)menu;
 @end
 
-@implementation NSWindow (Private)
-- (GSWindowDecorationView *) windowView
-{
-  return _wv;
-}
-
-- (void) _setMenu: (NSMenu *)menu
-{
-  [super setMenu: menu];
-}
-@end
-
 @interface NSMenu (GNUstepPrivate)
 
 - (BOOL) _isMain;
@@ -67,7 +56,7 @@
 
 @end
 
-@implementation	GSTheme (Menu)
+@implementation	GSDefaultTheme (Menu)
 - (void) setMenu: (NSMenu *)menu
        forWindow: (NSWindow *)window
 {
@@ -94,7 +83,7 @@
     [wv addMenuView: menuView];
     [menuView sizeToFit];
     RELEASE(menuView);
-  } 
+  }
 }
 
 - (void) rightMouseDisplay: (NSMenu *)menu
@@ -135,12 +124,24 @@
 			      onScreen: [cvWin screen]
 			 preferredEdge: edge
 		     popUpSelectedItem: selectedItem];
-  
+
   // Set to be above the main window
   [cvWin addChildWindow: [mr window] ordered: NSWindowAbove];
 
   // Last, display the window
   [[mr window] orderFrontRegardless];
+}
+
+- (BOOL) trackMenuView: (NSMenuView *)menuView withEvent: (NSEvent *)event
+{
+  return NO;
+}
+
+- (BOOL) displayNativePopUpMenu: (NSMenu *)menu
+                 atScreenRect: (NSRect)rect
+                    forWindow: (NSWindow *)window
+{
+  return NO;
 }
 
 - (void) processCommand: (void *)context
@@ -156,7 +157,7 @@
 
 - (void) updateMenu: (NSMenu *)menu forWindow: (NSWindow *)window
 {
-  [self setMenu: menu 
+  [self setMenu: menu
 	forWindow: window];
 }
 
@@ -233,14 +234,14 @@
       if (horizontal == YES)
         {
           NSMutableArray *itemsToMove;
-	  
+
           itemsToMove = [NSMutableArray new];
-          
+
           if (appMenu == nil)
             {
               [menu insertItemWithTitle: appTitle
                     action: NULL
-                    keyEquivalent: @"" 
+                    keyEquivalent: @""
                     atIndex: 0];
               appItem = [menu itemAtIndex: 0];
               appMenu = [NSMenu new];
@@ -250,7 +251,7 @@
           else
             {
               int index = [menu indexOfItem: appItem];
-              
+
               if (index != 0)
                 {
                   RETAIN (appItem);
@@ -289,7 +290,7 @@
                 }
               else
                 {
-                  // The menu may not be localized, so we have to 
+                  // The menu may not be localized, so we have to
                   // check both the English and the local version.
                   if ([title isEqual: @"Info"] ||
                       [title isEqual: @"Services"] ||
@@ -300,7 +301,7 @@
                     }
                 }
             }
-          
+
           for (i = 0; i < [itemsToMove count]; i++)
             {
               NSMenuItem *anItem = [itemsToMove objectAtIndex: i];
@@ -308,22 +309,22 @@
               [menu removeItem: anItem];
               [appMenu addItem: anItem];
             }
-          
+
           RELEASE(itemsToMove);
-        }      
-      else 
+        }
+      else
         {
           [appItem setImage: nil];
           if (appMenu != nil)
             {
               NSArray	*array = [NSArray arrayWithArray: [appMenu itemArray]];
-              /* 
+              /*
                * Everything above the Serives menu goes into the info submenu,
                * the rest into the main menu.
                */
               int k = [appMenu indexOfItemWithTitle: servicesString];
 
-              // The menu may not be localized, so we have to 
+              // The menu may not be localized, so we have to
               // check both the English and the local version.
               if (k == -1)
                 k = [appMenu indexOfItemWithTitle: @"Services"];
@@ -347,7 +348,7 @@
                   // Multiple info items, add a submenu for them
                   [menu insertItemWithTitle: infoString
                         action: NULL
-                        keyEquivalent: @"" 
+                        keyEquivalent: @""
                         atIndex: 0];
                   infoItem = [menu itemAtIndex: 0];
                   infoMenu = [NSMenu new];
@@ -357,7 +358,7 @@
                   for (i = 0; i < k; i++)
                     {
                       NSMenuItem *anItem = [array objectAtIndex: i];
-                  
+
                       [appMenu removeItem: anItem];
                       [infoMenu addItem: anItem];
                     }
@@ -369,7 +370,7 @@
                   NSMenuItem *anItem = [array objectAtIndex: 0];
                   NSString *title = [anItem title];
 
-                  // The menu may not be localized, so we have to 
+                  // The menu may not be localized, so we have to
                   // check both the English and the local version.
                   if ([title isEqual: @"Info"] ||
                       [title isEqual: infoString])
@@ -388,14 +389,14 @@
               for (i = k; i < [array count]; i++)
                 {
                   NSMenuItem *anItem = [array objectAtIndex: i];
-                  
+
                   [appMenu removeItem: anItem];
                   [menu addItem: anItem];
                 }
 
               [menu removeItem: appItem];
             }
-        }  
+        }
     }
 
   // recurse over all submenus
@@ -425,4 +426,3 @@
   return visible;
 }
 @end
-

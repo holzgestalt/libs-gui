@@ -44,7 +44,6 @@
 - (void) removeConstraint: (NSLayoutConstraint *)constraint;
 @end
 
-static NSMutableArray *activeConstraints = nil;
 static NSMapTable *installedContainers = nil;
 // static NSNotificationCenter *nc = nil;
 
@@ -55,9 +54,8 @@ static NSMapTable *installedContainers = nil;
   if (self == [NSLayoutConstraint class])
     {
       [self setVersion: 1];
-      activeConstraints = [[NSMutableArray alloc] initWithCapacity: 10];
       installedContainers =
-        [[NSMapTable alloc] initWithKeyOptions: NSMapTableObjectPointerPersonality
+        [[NSMapTable alloc] initWithKeyOptions: NSMapTableObjectPointerPersonality | NSMapTableWeakMemory
                                   valueOptions: NSMapTableWeakMemory
                                       capacity: 10];
       // nc = [NSNotificationCenter defaultCenter];
@@ -276,52 +274,35 @@ static NSMapTable *installedContainers = nil;
   return [firstView ancestorSharedWithView: secondView];
 }
 
-+ (void) _installConstraintIfPossible: (NSLayoutConstraint *)constraint
+/* Views own installed constraints, including those in detached hierarchies.
+   This weak map records ownership without keeping either side alive. */
++ (void) _setOwner: (NSView *)view forConstraint: (NSLayoutConstraint *)constraint
 {
-  if ([installedContainers objectForKey: constraint] != nil)
-    {
-      return;
-    }
-  NSView *container = [self _containerViewForConstraint: constraint];
-  if (container != nil && [container window] != nil)
-    {
-      [container addConstraint: constraint];
-      [installedContainers setObject: container forKey: constraint];
-    }
+  if (view != nil)
+    [installedContainers setObject: view forKey: constraint];
+  else
+    [installedContainers removeObjectForKey: constraint];
 }
 
-+ (void) _installPendingConstraintsForView: (NSView *)view
++ (NSView *) _ownerForConstraint: (NSLayoutConstraint *)constraint
 {
-  NSUInteger i, count = [activeConstraints count];
-  for (i = 0; i < count; i++)
-    {
-      [self _installConstraintIfPossible: [activeConstraints objectAtIndex: i]];
-    }
+  return [installedContainers objectForKey: constraint];
 }
 
 + (void) _activateConstraint: (NSLayoutConstraint *)constraint
 {
-  if ([activeConstraints indexOfObjectIdenticalTo: constraint] == NSNotFound)
-    {
-      [activeConstraints addObject: constraint];
-    }
-  [self _installConstraintIfPossible: constraint];
+  if ([self _ownerForConstraint: constraint] != nil)
+    return;
+  NSView *container = [self _containerViewForConstraint: constraint];
+  if (container == nil)
+    [NSException raise: NSInvalidArgumentException
+                format: @"Constraint items have no common ancestor"];
+  [container addConstraint: constraint];
 }
 
 + (void) _removeConstraint: (NSLayoutConstraint *)constraint
 {
-  NSUInteger index = [activeConstraints indexOfObjectIdenticalTo: constraint];
-  if (index != NSNotFound)
-    {
-      [activeConstraints removeObjectAtIndex: index];
-    }
-
-  NSView *container = [installedContainers objectForKey: constraint];
-  if (container != nil)
-    {
-      [container removeConstraint: constraint];
-      [installedContainers removeObjectForKey: constraint];
-    }
+  [[self _ownerForConstraint: constraint] removeConstraint: constraint];
 }
 
 + (NSArray *) constraintsWithVisualFormat: (NSString *)fmt 
@@ -412,7 +393,7 @@ static NSMapTable *installedContainers = nil;
 // Active  
 - (BOOL) isActive
 {
-  return [activeConstraints containsObject: self];
+  return [installedContainers objectForKey: self] != nil;
 }
 
 - (void) setActive: (BOOL)flag
@@ -442,23 +423,9 @@ static NSMapTable *installedContainers = nil;
   return NSOrderedSame;
 }
 
-- (BOOL) isEqual: (NSLayoutConstraint *)constraint
+- (BOOL) isEqual: (id)object
 {
-  BOOL result = [super isEqual: constraint];
-
-  if (result == NO)
-    {
-      result =  (_firstItem == [constraint firstItem] &&
-                 _secondItem == [constraint secondItem] &&
-                 _firstAttribute == [constraint firstAttribute] &&
-                 _secondAttribute == [constraint secondAttribute] &&
-                 _relation == [constraint relation] &&
-                 _multiplier == [constraint multiplier] &&
-                 _constant == [constraint constant] &&
-                 _priority == [constraint priority]);
-    }
-
-  return result;
+  return self == object;
 }
 
 // Items
@@ -621,8 +588,6 @@ static NSMapTable *installedContainers = nil;
         }
     }
   
-  [NSLayoutConstraint _activateConstraint: self];
-  
   return self;
 }
 
@@ -683,7 +648,6 @@ static NSMapTable *installedContainers = nil;
 
 - (void) dealloc
 {
-  [NSLayoutConstraint _removeConstraint: self];
   RELEASE(_identifier);
   [super dealloc];
 }

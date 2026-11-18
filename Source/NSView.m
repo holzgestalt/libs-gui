@@ -90,7 +90,9 @@
 #import "NSWindowPrivate.h"
 
 @interface NSLayoutConstraint (GSPrivate)
-+ (void) _installPendingConstraintsForView: (NSView *)view;
++ (void) _setOwner: (NSView *)view forConstraint: (NSLayoutConstraint *)constraint;
++ (NSView *) _ownerForConstraint: (NSLayoutConstraint *)constraint;
++ (NSView *) _viewForLayoutItem: (id)item;
 @end
 
 /*
@@ -446,7 +448,7 @@ GSSetDragTypes(NSView* obj, NSArray *types)
     }
   if ([self window] != nil)
     {
-      [NSLayoutConstraint _installPendingConstraintsForView: self];
+      [self _installConstraints];
     }
   if (_rFlags.has_subviews)
     {
@@ -469,6 +471,7 @@ GSSetDragTypes(NSView* obj, NSArray *types)
 - (void) _viewWillMoveToWindow: (NSWindow*)newWindow
 {
   BOOL old_allocate_gstate;
+  GSAutoLayoutEngine *oldLayoutEngine = [_window _layoutEngine];
 
   [self viewWillMoveToWindow: newWindow];
   if (_coordinates_valid)
@@ -483,6 +486,11 @@ GSSetDragTypes(NSView* obj, NSArray *types)
   if (newWindow == _window)
     {
       return;
+    }
+
+  if (_window != nil && [_constraints count] != 0)
+    {
+      [[_window _layoutEngine] removeConstraints: _constraints];
     }
 
   {
@@ -541,6 +549,7 @@ GSSetDragTypes(NSView* obj, NSArray *types)
             }
         }
     }
+  [oldLayoutEngine forgetDetachedView: self];
 }
 
 - (void) _viewWillMoveToSuperview: (NSView*)newSuper
@@ -863,6 +872,7 @@ GSSetDragTypes(NSView* obj, NSArray *types)
   TEST_RELEASE(_tracking_rects);
   TEST_RELEASE(_shadow);
   TEST_RELEASE(_layoutGuides);
+  TEST_RELEASE(_constraints);
 
   [self unregisterDraggedTypes];
   [self releaseGState];
@@ -1057,6 +1067,20 @@ GSSetDragTypes(NSView* obj, NSArray *types)
 	}
     }
   [self willRemoveSubview: aView];
+  /* Constraints owned by ancestors cannot outlive the subtree they refer
+     to. Constraints owned inside the subtree remain available for re-use. */
+  NSView *ancestor;
+  for (ancestor = self; ancestor != nil; ancestor = [ancestor superview])
+    {
+      NSMutableArray *removed = [NSMutableArray array];
+      FOR_IN(NSLayoutConstraint *, constraint, [ancestor constraints])
+        NSView *first = [NSLayoutConstraint _viewForLayoutItem: [constraint firstItem]];
+        NSView *second = [NSLayoutConstraint _viewForLayoutItem: [constraint secondItem]];
+        if ([first isDescendantOf: aView] || [second isDescendantOf: aView])
+          [removed addObject: constraint];
+      END_FOR_IN([ancestor constraints]);
+      [ancestor removeConstraints: removed];
+    }
   aView->_super_view = nil;
   [aView _viewWillMoveToWindow: nil];
   [aView _viewWillMoveToSuperview: nil];
@@ -4802,6 +4826,13 @@ static NSView* findByTag(NSView *view, NSInteger aTag, NSUInteger *level)
       [aCoder encodeObject: _sub_views 
 	      forKey: @"NSSubviews"];
       [aCoder encodeObject: _identifier forKey: @"NSUserInterfaceItemIdentifier"];
+      [aCoder encodeBool: _translatesAutoresizingMaskIntoConstraints
+                 forKey: @"NSTranslatesAutoresizingMaskIntoConstraints"];
+      [aCoder encodeObject: _constraints forKey: @"NSConstraints"];
+      [aCoder encodeFloat: _huggingPriorities.horizontal forKey: @"NSHorizontalHuggingPriority"];
+      [aCoder encodeFloat: _huggingPriorities.vertical forKey: @"NSVerticalHuggingPriority"];
+      [aCoder encodeFloat: _compressionPriorities.horizontal forKey: @"NSHorizontalCompressionResistancePriority"];
+      [aCoder encodeFloat: _compressionPriorities.vertical forKey: @"NSVerticalCompressionResistancePriority"];
       [aCoder encodeRect: _frame 
 	      forKey: @"NSFrame"];
 
@@ -4877,11 +4908,19 @@ static NSView* findByTag(NSView *view, NSInteger aTag, NSUInteger *level)
   // _boundsMatrix = [NSAffineTransform new];   // Map from superview to bounds
   _matrixToWindow = [NSAffineTransform new];  // Map to window coordinates
   _matrixFromWindow = [NSAffineTransform new];// Map from window coordinates
+  _translatesAutoresizingMaskIntoConstraints = YES;
+  _huggingPriorities.horizontal = _huggingPriorities.vertical = NSLayoutPriorityDefaultLow;
+  _compressionPriorities.horizontal = _compressionPriorities.vertical = NSLayoutPriorityDefaultHigh;
  
   if ([aDecoder allowsKeyedCoding])
     {
       NSView *prevKeyView = nil;
       NSView *nextKeyView = nil;
+      [self _decodeLayoutPriorities: aDecoder];
+
+      if ([aDecoder containsValueForKey: @"NSTranslatesAutoresizingMaskIntoConstraints"])
+        _translatesAutoresizingMaskIntoConstraints = [aDecoder decodeBoolForKey:
+          @"NSTranslatesAutoresizingMaskIntoConstraints"];
 
       if ([aDecoder containsValueForKey: @"NSUserInterfaceItemIdentifier"])
         [self setIdentifier: [aDecoder decodeObjectForKey: @"NSUserInterfaceItemIdentifier"]];
@@ -4973,6 +5012,9 @@ static NSView* findByTag(NSView *view, NSInteger aTag, NSUInteger *level)
 	}
 
       // Decode the shadow...
+      if ([aDecoder containsValueForKey: @"NSConstraints"])
+        [self addConstraints: [aDecoder decodeObjectForKey: @"NSConstraints"]];
+
       if ([aDecoder containsValueForKey: @"NSViewShadow"])
 	{
 	  [self setShadow: [aDecoder decodeObjectForKey: @"NSViewShadow"]];
@@ -5407,9 +5449,14 @@ static NSView* findByTag(NSView *view, NSInteger aTag, NSUInteger *level)
     {
       NSArray *subviews = [self subviews];
       FOR_IN (NSView *, subview, subviews)
-        NSRect subviewAlignmentRect =
-            [engine alignmentRectForView: subview];
-        [subview setFrame: subviewAlignmentRect];
+        if ([engine hasLayoutForView: subview])
+          {
+            NSRect rect = [engine alignmentRectForView: subview];
+            if ([subview translatesAutoresizingMaskIntoConstraints])
+              [subview setFrameSize: rect.size];
+            else
+              [subview setFrame: rect];
+          }
       END_FOR_IN (subviews);
     }
 
@@ -5534,6 +5581,8 @@ static NSView* findByTag(NSView *view, NSInteger aTag, NSUInteger *level)
 
 - (void) _layoutViewAndSubViews
 {
+  if (self == [[self window] contentView])
+    [[self _layoutEngine] prepareForLayout];
   if (_needsLayout)
     {
       [self layout];
@@ -5558,6 +5607,24 @@ static NSView* findByTag(NSView *view, NSInteger aTag, NSUInteger *level)
 - (void) _layoutEngineDidChangeAlignmentRect
 {
   [[self superview] setNeedsLayout: YES];
+}
+
+- (void) _installConstraints
+{
+  if ([_constraints count] != 0)
+    [[self _getOrCreateLayoutEngine] addConstraints: _constraints];
+}
+
+- (void) _decodeLayoutPriorities: (NSCoder *)coder
+{
+  if ([coder containsValueForKey: @"NSHorizontalHuggingPriority"])
+    _huggingPriorities.horizontal = [coder decodeFloatForKey: @"NSHorizontalHuggingPriority"];
+  if ([coder containsValueForKey: @"NSVerticalHuggingPriority"])
+    _huggingPriorities.vertical = [coder decodeFloatForKey: @"NSVerticalHuggingPriority"];
+  if ([coder containsValueForKey: @"NSHorizontalCompressionResistancePriority"])
+    _compressionPriorities.horizontal = [coder decodeFloatForKey: @"NSHorizontalCompressionResistancePriority"];
+  if ([coder containsValueForKey: @"NSVerticalCompressionResistancePriority"])
+    _compressionPriorities.vertical = [coder decodeFloatForKey: @"NSVerticalCompressionResistancePriority"];
 }
 
 // When a window content view that drives Auto Layout is resized, refresh the
@@ -5622,18 +5689,6 @@ static NSView* findByTag(NSView *view, NSInteger aTag, NSUInteger *level)
 
 - (void) updateConstraints
 {
-  if ([self translatesAutoresizingMaskIntoConstraints] &&
-      [self superview] != nil)
-    {
-      NSArray *autoresizingConstraints = [NSAutoresizingMaskLayoutConstraint
-          constraintsWithAutoresizingMask: [self autoresizingMask]
-                                  subitem: self
-                                    frame: [self frame]
-                                superitem: [self superview]
-                                   bounds: [[self superview] bounds]];
-      [self addConstraints: autoresizingConstraints];
-    }
-
   [self _setNeedsUpdateConstraints: NO];
 }
 
@@ -5676,53 +5731,61 @@ static NSView* findByTag(NSView *view, NSInteger aTag, NSUInteger *level)
 
 - (void) addConstraint: (NSLayoutConstraint *)constraint
 {
-  if (![self _getOrCreateLayoutEngine])
-    {
-      return;
-    }
-
-  [[self _layoutEngine] addConstraint: constraint];
+  [self addConstraints: [NSArray arrayWithObject: constraint]];
 }
 
 - (void) addConstraints: (NSArray*)constraints
 {
-  if (![self _getOrCreateLayoutEngine])
+  FOR_IN(NSLayoutConstraint *, constraint, constraints)
     {
-      return;
+      NSView *owner = [NSLayoutConstraint _ownerForConstraint: constraint];
+      NSView *first = [NSLayoutConstraint _viewForLayoutItem: [constraint firstItem]];
+      NSView *second = [NSLayoutConstraint _viewForLayoutItem: [constraint secondItem]];
+      if (first == nil || ![first isDescendantOf: self]
+          || (second != nil && ![second isDescendantOf: self]))
+        [NSException raise: NSInvalidArgumentException
+                    format: @"Constraint items must belong to the installing view's hierarchy"];
+      if (owner != nil && owner != self)
+        [NSException raise: NSInvalidArgumentException
+                    format: @"Constraint already belongs to another view"];
+      if (_constraints == nil)
+        _constraints = [NSMutableArray new];
+      if ([_constraints indexOfObjectIdenticalTo: constraint] == NSNotFound)
+        {
+          [_constraints addObject: constraint];
+          [NSLayoutConstraint _setOwner: self forConstraint: constraint];
+        }
     }
-
-  [[self _layoutEngine] addConstraints: constraints];
+  END_FOR_IN(constraints);
+  if ([self window] != nil && [constraints count] != 0)
+    [[self _getOrCreateLayoutEngine] addConstraints: constraints];
 }
 
 - (void) removeConstraint: (NSLayoutConstraint *)constraint
 {
-  if (![self _layoutEngine])
-    {
-      return;
-    }
-
-  [[self _layoutEngine] removeConstraint: constraint];
+  [self removeConstraints: [NSArray arrayWithObject: constraint]];
 }
 
 - (void) removeConstraints: (NSArray *)constraints
 {
-  if (![self _layoutEngine])
+  NSMutableArray *removed = [NSMutableArray array];
+  FOR_IN(NSLayoutConstraint *, constraint, constraints)
     {
-      return;
+      if ([_constraints indexOfObjectIdenticalTo: constraint] != NSNotFound
+          && _constraints != nil)
+        [removed addObject: constraint];
     }
-
-  [[self _layoutEngine] removeConstraints: constraints];
+  END_FOR_IN(constraints);
+  [[self _layoutEngine] removeConstraints: removed];
+  FOR_IN(NSLayoutConstraint *, constraint, removed)
+    [_constraints removeObjectIdenticalTo: constraint];
+    [NSLayoutConstraint _setOwner: nil forConstraint: constraint];
+  END_FOR_IN(removed);
 }
 
 - (NSArray*) constraints
 {
-  GSAutoLayoutEngine *engine = [self _layoutEngine];
-  if (!engine)
-    {
-      return [NSArray array];
-    }
-
-  return [engine constraintsForView: self];
+  return _constraints ? [NSArray arrayWithArray: _constraints] : [NSArray array];
 }
 
 @end

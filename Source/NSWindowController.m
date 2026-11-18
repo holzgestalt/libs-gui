@@ -449,7 +449,7 @@
 /** Returns YES if the receiver's window has loaded. */
 - (BOOL) isWindowLoaded
 {
-  return _wcFlags.nib_is_loaded;
+  return _window != nil;
 }
 
 /** Subclasses can override this method to perform any customisation

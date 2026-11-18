@@ -291,8 +291,8 @@
   if (coefficentInExistingExpression != nil)
     {
       CGFloat newCoefficent = [self
-           calculateNewCoefficent: [coefficentInExistingExpression floatValue]
-        coefficentInNewExpression: [coefficentInNewExpression floatValue]
+           calculateNewCoefficent: [coefficentInExistingExpression doubleValue]
+        coefficentInNewExpression: [coefficentInNewExpression doubleValue]
                        multiplier: multiplier];
 
       if ([GSCSFloatComparator isApproxiatelyZero: newCoefficent])
@@ -309,7 +309,7 @@
   else
     {
       CGFloat updatedCoefficent
-        = multiplier * [coefficentInNewExpression floatValue];
+        = multiplier * [coefficentInNewExpression doubleValue];
       [expression addVariable: term coefficient: updatedCoefficent];
       [self addMappingFromExpressionVariable: term toRowVariable: subject];
     }

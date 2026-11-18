@@ -5,6 +5,7 @@
    menu window.  This draws the menu background on a white background and reads
    back a corner pixel, so it needs the backend and the body is guarded. */
 #import "Testing.h"
+#import "../GSThemeTest.h"
 #import <AppKit/NSApplication.h>
 #import <AppKit/NSBitmapImageRep.h>
 #import <AppKit/NSColor.h>
@@ -107,18 +108,20 @@ int main(int argc, const char **argv)
        "the default menu border radius is zero");
 
   GSTheme *saved = RETAIN([GSTheme theme]);
+  Class flat = GSTestThemeSubclass([saved class], [FlatMenuTheme class], "FlatProviderMenuTheme");
+  Class rounded = GSTestThemeSubclass(flat, [RoundMenuTheme class], "RoundProviderMenuTheme");
 
   /* A zero radius fills the whole rectangle, so a corner is painted. */
-  [GSTheme setTheme: AUTORELEASE([[FlatMenuTheme alloc] initWithBundle: nil])];
+  GSTestSetTheme(AUTORELEASE([[flat alloc] initWithBundle: nil]));
   NSColor *flatCorner = drawnPixel(40, 1, 1);
 
   /* A non-zero radius rounds the corners, so the corner keeps the white
      background while the centre is still painted. */
-  [GSTheme setTheme: AUTORELEASE([[RoundMenuTheme alloc] initWithBundle: nil])];
+  GSTestSetTheme(AUTORELEASE([[rounded alloc] initWithBundle: nil]));
   NSColor *roundCentre = drawnPixel(40, 20, 20);
   NSColor *roundCorner = drawnPixel(40, 1, 1);
 
-  [GSTheme setTheme: saved];
+  GSTestRestoreTheme();
   RELEASE(saved);
 
   PASS(isRed(flatCorner),

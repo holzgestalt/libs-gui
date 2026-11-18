@@ -62,6 +62,8 @@
 #import "AppKit/NSBezierPath.h"
 #import "AppKit/PSOperators.h"
 #import "GSThemePrivate.h"
+/* Defined by the application link unit. AppKit has no concrete provider. */
+extern Class GSApplicationThemeClass(void) __attribute__((weak));
 
 NSString	*GSSwitch = @"GSSwitch";
 NSString        *GSRadio = @"GSRadio";
@@ -341,10 +343,44 @@ GSStringFromImageFrameStyle(NSImageFrameStyle type)
 @end
 
 @implementation GSTheme
+- (void) displayServerDidConnect {}
+- (BOOL) usesIndividualDocumentSaveAlerts { return NO; }
+- (BOOL) runNativeDocumentSaveAlertWithTitle: (NSString *)title
+                                  message: (NSString *)message
+                                  buttons: (NSArray *)buttons
+                                   result: (NSInteger *)result
+{
+  return NO;
+}
+- (BOOL) runNativeAlertWithTitle: (NSString *)title
+                       message: (NSString *)message
+                       buttons: (NSArray *)buttons
+                 defaultButton: (NSInteger)defaultButton
+                  cancelButton: (NSInteger)cancelButton
+                        result: (NSInteger *)result
+{
+  return NO;
+}
+
+- (BOOL) drawNativeScroller: (NSScroller *)scroller dirtyRect: (NSRect)rect
+{
+  return NO;
+}
+
+- (id<GSNativeTableView>) nativeTableViewForTableView: (NSTableView *)table
+{
+  return nil;
+}
+
+- (BOOL) getScrollerRect: (NSRect *)rect
+               forPart: (NSScrollerPart)part
+            inScroller: (NSScroller *)scroller
+{
+  return NO;
+}
 
 static GSTheme			*defaultTheme = nil;
 static GSTheme			*theTheme = nil;
-static NSMutableDictionary	*themes = nil;
 static NSNull			*null = nil;
 static NSMapTable		*names = 0;
 
@@ -375,180 +411,40 @@ typedef	struct {
 #define	_imageClass		_internal->imageClass
 #define	_overrides		_internal->overrides
 
-+ (void) defaultsDidChange: (NSNotification*)n
-{
-  NSUserDefaults	*defs;
-  NSString		*name;
-
-  defs = [NSUserDefaults standardUserDefaults];
-  name = [defs stringForKey: @"GSTheme"];
-  if (0 == [name length])
-    {
-      name = @"GNUstep";
-    }
-  else if ([[name pathExtension] isEqual: @"theme"])
-    {
-      name = [name stringByDeletingPathExtension];
-    }
-  if (NO == [[name lastPathComponent] isEqual: [theTheme name]])
-    {
-      [self setTheme: [self loadThemeNamed: name]];
-    }
-}
+/* Compatibility entry points cannot change the compiled provider. */
++ (void) defaultsDidChange: (NSNotification*)n {}
++ (void) preferenceDidChange: (NSNotification*)n {}
 
 + (void) initialize
 {
-  if (themes == nil)
+  if (self == [GSTheme class])
     {
-      themes = [NSMutableDictionary new];
       null = RETAIN([NSNull null]);
-      defaultTheme = [[self alloc] initWithBundle: nil];
-      ASSIGN(theTheme, defaultTheme);
       names = NSCreateMapTable(NSNonOwnedPointerMapKeyCallBacks,
-	NSIntMapValueCallBacks, 0);
-
-      [[NSDistributedNotificationCenter defaultCenter]
-	    addObserver: self
-	       selector: @selector(preferenceDidChange:)
-		   name: @"GSThemePreferenceDidChangeNotification"
-		 object: nil];
-      [[NSNotificationCenter defaultCenter]
-	addObserver: self
-	   selector: @selector(defaultsDidChange:)
-	       name: NSUserDefaultsDidChangeNotification
-	     object: nil];
-      /* Establish the theme specified by the user defaults (if any);
-       */
-      [self defaultsDidChange: nil];
+        NSIntMapValueCallBacks, 0);
+      Class provider = GSApplicationThemeClass ? GSApplicationThemeClass() : Nil;
+      if (provider == Nil || provider == [GSTheme class]
+        || ![provider isSubclassOfClass: [GSTheme class]])
+        [NSException raise: NSInternalInconsistencyException
+                    format: @"This application must link a theme provider. "
+                      @"AppKit supplies only the GSTheme interface."];
+      defaultTheme = [[provider alloc] initWithBundle: nil];
+      ASSIGN(theTheme, defaultTheme);
+      [theTheme activate];
     }
 }
 
 + (GSTheme*) loadThemeNamed: (NSString*)aName
 {
-  NSBundle	*bundle;
-  Class		cls;
-  GSTheme	*instance;
-  NSString	*theme;
-
-  if ([[aName pathExtension] isEqual: @"theme"])
-    {
-      aName = [aName stringByDeletingPathExtension];
-    }
-  if ([aName length] == 0 || [[aName lastPathComponent] isEqual: @"GNUstep"])
-    {
-      return defaultTheme;
-    }
-
-  if ([aName isAbsolutePath] == YES)
-    {
-      theme = aName;
-    }
-  else
-    {
-      aName = [aName lastPathComponent];
-    }
-
-  /* Ensure that the theme name has the 'theme' extension.
-   */
-  if ([[aName pathExtension] isEqualToString: @"theme"] == YES)
-    {
-      theme = aName;
-    }
-  else
-    {
-      theme = [aName stringByAppendingPathExtension: @"theme"];
-    }
-
-  bundle = [themes objectForKey: theme];
-  if (bundle == nil)
-    {
-      NSString		*path = nil;
-      NSFileManager	*mgr = [NSFileManager defaultManager];
-      BOOL 		isDir;
-
-      /* A theme may be either an absolute path or a filename to be located
-       * in the Themes subdirectory of one of the standard Library directories.
-       */
-      if ([theme isAbsolutePath] == YES)
-        {
-	  if ([mgr fileExistsAtPath: theme isDirectory: &isDir] == YES
-	    && isDir == YES)
-	    {
-	      path = theme;
-	    }
-	}
-      else
-        {
-	  NSEnumerator	*enumerator;
-
-	  enumerator = [NSSearchPathForDirectoriesInDomains
-	    (NSAllLibrariesDirectory, NSAllDomainsMask, YES) objectEnumerator];
-	  while ((path = [enumerator nextObject]) != nil)
-	    {
-	      path = [path stringByAppendingPathComponent: @"Themes"];
-	      path = [path stringByAppendingPathComponent: theme];
-	      if ([mgr fileExistsAtPath: path isDirectory: &isDir])
-		{
-		  break;
-		}
-	    }
-	}
-
-      if (path == nil)
-	{
-	  NSLog (@"No theme named '%@' found", aName);
-	  return nil;
-	}
-      else
-        {
-	  bundle = [NSBundle bundleWithPath: path];
-	  [themes setObject: bundle forKey: theme];
-	  [bundle load];	// Ensure code is loaded.
-	}
-    }
-
-  cls = [bundle principalClass];
-  if (cls == 0)
-    {
-      cls = self;
-    }
-  instance = [[cls alloc] initWithBundle: bundle];
-  return AUTORELEASE(instance);
+  if ([aName length] == 0
+    || [[[aName lastPathComponent] stringByDeletingPathExtension]
+      isEqualToString: [theTheme name]])
+    return theTheme;
+  return nil;
 }
 
-+ (void) orderFrontSharedThemePanel: (id)sender
-{
-  GSThemePanel *panel;
-
-  panel = [GSThemePanel sharedThemePanel];
-  [panel update: self];
-  [panel center];
-  [panel orderFront: self];
-}
-
-+ (void) preferenceDidChange: (NSNotification*)n
-{
-  NSUserDefaults	*defaults;
-
-  defaults = [NSUserDefaults standardUserDefaults];
-  [defaults synchronize];
-  NSDebugMLLog(@"GSTheme", @"default theme is now %@",
-    [defaults objectForKey: @"GSTheme"]);
-}
-
-+ (void) setTheme: (GSTheme*)theme
-{
-  if (theme == nil)
-    {
-      theme = defaultTheme;
-    }
-  if (theme != theTheme)
-    {
-      [theTheme deactivate];
-      ASSIGN (theTheme, theme);
-      [theTheme activate];
-    }
-}
++ (void) orderFrontSharedThemePanel: (id)sender {}
++ (void) setTheme: (GSTheme*)theme {}
 
 + (GSTheme*) theme 
 {
@@ -1045,10 +941,6 @@ typedef	struct {
 
 - (NSString*) name
 {
-  if (self == defaultTheme)
-    {
-      _name = @"GNUstep";
-    }
   return _name;
 }
 

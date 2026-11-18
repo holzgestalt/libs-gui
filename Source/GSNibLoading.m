@@ -64,6 +64,7 @@
 
 #import "GNUstepGUI/GSInstantiator.h"
 #import "GSGuiPrivate.h"
+#import "NSViewPrivate.h"
 
 static BOOL _isInInterfaceBuilder = NO;
 
@@ -1169,12 +1170,19 @@ static BOOL _isInInterfaceBuilder = NO;
       // reset the bounds...
       // [_view setBounds: [_view frame]];
 
+      if ([coder containsValueForKey: @"NSTranslatesAutoresizingMaskIntoConstraints"])
+        [_view setTranslatesAutoresizingMaskIntoConstraints: [coder decodeBoolForKey:
+          @"NSTranslatesAutoresizingMaskIntoConstraints"]];
+      [_view _decodeLayoutPriorities: coder];
+
       subs = [coder decodeObjectForKey: @"NSSubviews"];
       en = [subs objectEnumerator];
       while((v = [en nextObject]) != nil)
 	{
 	  [_view addSubview: v];
 	}
+      if ([coder containsValueForKey: @"NSConstraints"])
+        [_view addConstraints: [coder decodeObjectForKey: @"NSConstraints"]];
     }
   else
     {

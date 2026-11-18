@@ -1,3 +1,4 @@
+#import "GSClassicTheme.h"
 /** <title>GSThemeDrawing</title>
 
    <abstract>The theme methods for drawing controls</abstract>
@@ -6,7 +7,7 @@
 
    Author: Adam Fedor <fedor@gnu.org>
    Date: Jan 2004
-   
+
    This file is part of the GNU Objective C User interface library.
 
    This library is free software; you can redistribute it and/or
@@ -21,8 +22,8 @@
 
    You should have received a copy of the GNU Lesser General Public
    License along with this library; see the file COPYING.LIB.
-   If not, see <http://www.gnu.org/licenses/> or write to the 
-   Free Software Foundation, 51 Franklin Street, Fifth Floor, 
+   If not, see <http://www.gnu.org/licenses/> or write to the
+   Free Software Foundation, 51 Franklin Street, Fifth Floor,
    Boston, MA 02110-1301, USA.
 */
 
@@ -94,17 +95,17 @@
 - (BOOL) _inEditing;
 - (void) _drawEditorWithFrame: (NSRect)cellFrame
                        inView: (NSView *)controlView;
-- (void) _drawAttributedText: (NSAttributedString*)aString 
+- (void) _drawAttributedText: (NSAttributedString*)aString
                      inFrame: (NSRect)aRect;
 @end
 
-@implementation	GSTheme (Drawing)
-- (void) setKeyEquivalent: (NSString *)key 
+@implementation	GSClassicTheme (Drawing)
+- (void) setKeyEquivalent: (NSString *)key
             forButtonCell: (NSButtonCell *)cell
 {
   if([cell image] == nil && ([key isEqualToString:@"\r"] ||
 			     [key isEqualToString:@"\n"]))
-    { 
+    {
       [cell setImagePosition: NSImageRight];
       [cell setImage: [NSImage imageNamed:@"common_ret"]];
       [cell setAlternateImage: [NSImage imageNamed:@"common_retH"]];
@@ -121,10 +122,10 @@
     }
 }
 
-- (void) drawButton: (NSRect)frame 
-                 in: (NSCell*)cell 
-               view: (NSView*)view 
-              style: (int)style 
+- (void) drawButton: (NSRect)frame
+                 in: (NSCell*)cell
+               view: (NSView*)view
+              style: (int)style
               state: (GSThemeControlState)state
 {
   GSDrawTiles	*tiles = nil;
@@ -154,7 +155,7 @@
           color = [NSColor selectedControlColor];
 	}
       else
-    	{
+        {
           color = [NSColor controlBackgroundColor];
 	}
     }
@@ -208,7 +209,7 @@
 	    break;
 	  case NSCircularBezelStyle:
 	    frame = NSInsetRect(frame, 3, 3);
-	    [self drawCircularBezel: frame withColor: color]; 
+	    [self drawCircularBezel: frame withColor: color];
 	    break;
 	  case NSHelpButtonBezelStyle:
 	    [self drawCircularBezel: frame withColor: color];
@@ -274,7 +275,7 @@
 }
 
 - (GSThemeMargins) buttonMarginsForCell: (NSCell*)cell
-				  style: (int)style 
+				  style: (int)style
 				  state: (GSThemeControlState)state
 {
   GSDrawTiles	*tiles = nil;
@@ -290,7 +291,7 @@
   if (tiles == nil)
     {
       tiles = [self tilesNamed: @"NSButton" state: state];
-    } 
+    }
 
   if (tiles == nil)
     {
@@ -349,7 +350,7 @@
   GSDrawTiles *tiles = [self tilesNamed: @"NSFocusRing" state: GSThemeNormalState];
 
   if (tiles == nil)
-    {    
+    {
       NSDottedFrameRect(frame);
     }
   else
@@ -368,8 +369,8 @@
   NSRectFill (frame);
 }
 
-- (void) drawBorderType: (NSBorderType)aType 
-                  frame: (NSRect)frame 
+- (void) drawBorderType: (NSBorderType)aType
+                  frame: (NSRect)frame
                    view: (NSView*)view
 {
   NSString      *name = GSStringFromBorderType(aType);
@@ -389,7 +390,7 @@
 	  case NSBezelBorder:
 	    [self drawWhiteBezel: frame withClip: NSZeroRect];
 	    break;
-	  case NSNoBorder: 
+	  case NSNoBorder:
 	  default:
 	    break;
 	}
@@ -416,7 +417,7 @@
 	  case NSGrooveBorder:
 	  case NSBezelBorder:
 	    return NSMakeSize(2, 2);
-	  case NSNoBorder: 
+	  case NSNoBorder:
 	  default:
 	    return NSZeroSize;
 	}
@@ -432,7 +433,7 @@
 }
 
 - (void) drawBorderForImageFrameStyle: (NSImageFrameStyle)frameStyle
-                                frame: (NSRect)frame 
+                                frame: (NSRect)frame
                                  view: (NSView*)view
 {
   NSString      *name = GSStringFromImageFrameStyle(frameStyle);
@@ -497,10 +498,10 @@
     }
   else
     {
-      NSInterfaceStyle interfaceStyle = 
+      NSInterfaceStyle interfaceStyle =
 	NSInterfaceStyleForKey(@"NSScrollerInterfaceStyle", aScroller);
-      
-      if ((interfaceStyle == NSNextStepInterfaceStyle 
+
+      if ((interfaceStyle == NSNextStepInterfaceStyle
 	   || interfaceStyle == NSMacintoshInterfaceStyle
 	   || interfaceStyle == GSWindowMakerInterfaceStyle))
 	{
@@ -523,10 +524,10 @@
     }
   else
     {
-      NSInterfaceStyle interfaceStyle = 
+      NSInterfaceStyle interfaceStyle =
 	NSInterfaceStyleForKey(@"NSScrollerInterfaceStyle", aScroller);
-      
-      if (interfaceStyle == NSNextStepInterfaceStyle 
+
+      if (interfaceStyle == NSNextStepInterfaceStyle
 	  || interfaceStyle == NSMacintoshInterfaceStyle
 	  || interfaceStyle == GSWindowMakerInterfaceStyle)
 	{
@@ -548,7 +549,7 @@
 {
   NSButtonCell	*cell;
   NSString	*name;
-  
+
   cell = [NSButtonCell new];
   if (horizontal)
     {
@@ -613,7 +614,7 @@
     {
       [self setName: GSScrollerVerticalKnob forElement: cell temporary: YES];
       [cell setImage: [NSImage imageNamed: @"common_Dimple"]];
-  
+
     }
   RELEASE(cell);
   return cell;
@@ -643,7 +644,7 @@
   [cell setTitle: nil];
 
   [self setName: name forElement: cell temporary: YES];
- 
+
   if (color == nil)
     {
       color = [NSColor scrollBarColor];
@@ -761,30 +762,30 @@
   // We draw the background
   [[self toolbarBackgroundColor] set];
   [NSBezierPath fillRect: aRect];
-  
+
   // We draw the border
   [[self toolbarBorderColor] set];
   if (borderMask & GSToolbarViewBottomBorder)
     {
-      [NSBezierPath strokeLineFromPoint: NSMakePoint(0, 0.5) 
+      [NSBezierPath strokeLineFromPoint: NSMakePoint(0, 0.5)
                     toPoint: NSMakePoint(viewFrame.size.width, 0.5)];
     }
   if (borderMask & GSToolbarViewTopBorder)
     {
-      [NSBezierPath strokeLineFromPoint: NSMakePoint(0, 
-                                                     viewFrame.size.height - 0.5) 
-                    toPoint: NSMakePoint(viewFrame.size.width, 
+      [NSBezierPath strokeLineFromPoint: NSMakePoint(0,
+                                                     viewFrame.size.height - 0.5)
+                    toPoint: NSMakePoint(viewFrame.size.width,
                                          viewFrame.size.height -  0.5)];
     }
   if (borderMask & GSToolbarViewLeftBorder)
     {
-      [NSBezierPath strokeLineFromPoint: NSMakePoint(0.5, 0) 
+      [NSBezierPath strokeLineFromPoint: NSMakePoint(0.5, 0)
                     toPoint: NSMakePoint(0.5, viewFrame.size.height)];
     }
   if (borderMask & GSToolbarViewRightBorder)
     {
       [NSBezierPath strokeLineFromPoint: NSMakePoint(viewFrame.size.width - 0.5,0)
-                    toPoint: NSMakePoint(viewFrame.size.width - 0.5, 
+                    toPoint: NSMakePoint(viewFrame.size.width - 0.5,
                                          viewFrame.size.height)];
     }
 }
@@ -884,12 +885,12 @@
   const NSRect downRect = [self stepperDownButtonRectWithFrame: cellFrame];
 
   [self drawStepperBorder: cellFrame];
-  
+
   if (highlightUp)
     [self drawStepperHighlightUpButton: upRect];
   else
     [self drawStepperUpButton: upRect];
-  
+
   if (highlightDown)
     [self drawStepperHighlightDownButton: downRect];
   else
@@ -906,7 +907,7 @@
   NSPoint point;
   CGFloat radius;
   NSColor *backgroundColor;
-  
+
   if (enabled == NO)
     {
       backgroundColor = [NSColor disabledControlTextColor];
@@ -919,7 +920,7 @@
     {
       backgroundColor = [NSColor selectedControlColor]; // onColor
     }
-  
+
   // make smaller than enclosing frame
   frame = NSInsetRect(frame, 4, 4);
   radius = frame.size.height / 2.0;
@@ -999,10 +1000,10 @@
                         w,
                         h);
     }
-  
-  
+
+
   oval = [NSBezierPath bezierPathWithOvalInRect: NSInsetRect(rect, 1, 1)];
-  
+
   // fill oval with background color
   [backgroundColor set];
   [oval fill];
@@ -1025,7 +1026,7 @@
   [self drawSwitchKnob: rect
               forState: state
                enabled: enabled];
-        
+
 }
 
 // NSPathComponentCell
@@ -1037,7 +1038,7 @@
 {
   NSImage *img = [cell image];
   NSURL *url = [cell URL];
-  NSString *string = [[url path] lastPathComponent];
+  NSString *string = [cell stringValue];
   NSRect textFrame = frame;
   NSRect imgFrame = frame;
   NSRect arrowFrame = frame;
@@ -1045,20 +1046,25 @@
   NSPathStyle style= [pc pathStyle];
   NSRect newFrame = frame;
 
+  if ([string length] == 0)
+    {
+      string = [[url path] lastPathComponent];
+    }
+
   if (style == NSPathStylePopUp)
     {
       newFrame = [pc frame];
-      
+
       // Reset coodinates.
       newFrame.origin.x = 0.0;
       newFrame.origin.y = 0.0;
-      
+
       // Use control frame...
       textFrame = newFrame;
       imgFrame = newFrame;
-      arrowFrame = newFrame;    
+      arrowFrame = newFrame;
     }
-  
+
   // Modify positions...
   imgFrame.size.width = 17.0;
   imgFrame.size.height = 17.0;
@@ -1066,25 +1072,54 @@
   imgFrame.origin.y += 2.0;
   textFrame.origin.x += imgFrame.size.width + 5.0; // the width of the image plus a few pixels.
   textFrame.origin.y += 5.0; // center with the image...
-  arrowFrame.origin.x += newFrame.size.width - 17.0; 
+  arrowFrame.origin.x += newFrame.size.width - 17.0;
   arrowFrame.size.width = 8.0;
   arrowFrame.size.height = 8.0;
   arrowFrame.origin.y += 5.0;
-      
+
   if (style== NSPathStyleStandard || style== NSPathStyleNavigationBar)
     {
-      // Draw the image...
-      [img drawInRect: imgFrame];
-      
-      // Draw the text...
-      [[NSColor textColor] set]; 
-      [string drawAtPoint: textFrame.origin
-           withAttributes: nil];
-      
-      // Draw the arrow...
+      /* Icon and title centred in the component, a chevron separating it
+       * from the next one; the title is truncated to the room left. */
+      NSFont *font = [cell font] ? [cell font] : [NSFont systemFontOfSize: 0];
+      NSMutableParagraphStyle *paragraph = [[[NSMutableParagraphStyle alloc] init] autorelease];
+      NSDictionary *attributes;
+      CGFloat separator = last ? 0.0 : 14.0;
+      CGFloat x = NSMinX(frame) + 4.0;
+      NSSize textSize;
+      NSRect textRect;
+
+      [paragraph setLineBreakMode: NSLineBreakByTruncatingTail];
+      attributes = [NSDictionary dictionaryWithObjectsAndKeys:
+        font, NSFontAttributeName,
+        [NSColor controlTextColor], NSForegroundColorAttributeName,
+        paragraph, NSParagraphStyleAttributeName, nil];
+      if (img != nil)
+        {
+          [img drawInRect: NSMakeRect(x, floor(NSMidY(frame) - 8.0), 16.0, 16.0)
+                 fromRect: NSZeroRect
+                operation: NSCompositeSourceOver
+                 fraction: 1.0
+           respectFlipped: YES
+                    hints: nil];
+          x += 20.0;
+        }
+      textSize = [string sizeWithAttributes: attributes];
+      textRect = NSMakeRect(x, floor(NSMidY(frame) - textSize.height / 2.0),
+                            MAX(0.0, NSMaxX(frame) - separator - x - 2.0), textSize.height);
+      [string drawInRect: textRect withAttributes: attributes];
+
       if (last == NO)
         {
-          [arrowImage drawInRect: arrowFrame];
+          NSBezierPath *chevron = [NSBezierPath bezierPath];
+          CGFloat cx = NSMaxX(frame) - 9.0;
+
+          [chevron moveToPoint: NSMakePoint(cx - 2.0, NSMidY(frame) - 4.0)];
+          [chevron lineToPoint: NSMakePoint(cx + 2.0, NSMidY(frame))];
+          [chevron lineToPoint: NSMakePoint(cx - 2.0, NSMidY(frame) + 4.0)];
+          [chevron setLineWidth: 1.2];
+          [[NSColor disabledControlTextColor] set];
+          [chevron stroke];
         }
     }
   else if (style == NSPathStylePopUp)
@@ -1096,15 +1131,15 @@
           // Draw border...
           [[NSColor controlShadowColor] set];
           NSFrameRectWithWidth(newFrame, 1.0);
-          
+
           // Draw the image...
           [img drawInRect: imgFrame];
-          
+
           // Draw the text...
-          [[NSColor textColor] set]; 
+          [[NSColor textColor] set];
           [string drawAtPoint: textFrame.origin
                withAttributes: nil];
-          
+
           // Draw the arrow...
           [arrowImage drawInRect: arrowFrame];
         }
@@ -1116,7 +1151,7 @@
 - (void) drawSegmentedControlSegment: (NSCell *)cell
                            withFrame: (NSRect)cellFrame
                               inView: (NSView *)controlView
-                               style: (NSSegmentStyle)style  
+                               style: (NSSegmentStyle)style
                                state: (GSThemeControlState)state
                          roundedLeft: (BOOL)roundedLeft
                         roundedRight: (BOOL)roundedRight
@@ -1133,7 +1168,7 @@
     }
 
   tiles = [self tilesNamed: name state: state];
- 
+
   if (tiles == nil)
     {
       [self drawButton: cellFrame
@@ -1226,12 +1261,12 @@
 - (void) drawBackgroundForMenuView: (NSMenuView*)menuView
                          withFrame: (NSRect)bounds
                          dirtyRect: (NSRect)dirtyRect
-                        horizontal: (BOOL)horizontal 
+                        horizontal: (BOOL)horizontal
 {
-  NSString  *name = horizontal ? GSMenuHorizontalBackground : 
+  NSString  *name = horizontal ? GSMenuHorizontalBackground :
     GSMenuVerticalBackground;
   GSDrawTiles *tiles = [self tilesNamed: name state: GSThemeNormalState];
- 
+
   if (tiles == nil)
     {
       CGFloat radius = [self menuBorderRadius];
@@ -1268,7 +1303,7 @@
     }
 }
 
-- (BOOL) drawsBorderForMenuItemCell: (NSMenuItemCell *)cell 
+- (BOOL) drawsBorderForMenuItemCell: (NSMenuItemCell *)cell
                               state: (GSThemeControlState)state
                        isHorizontal: (BOOL)horizontal
 {
@@ -1284,7 +1319,7 @@
   NSString  *name = isHorizontal ? GSMenuHorizontalItem :
     GSMenuVerticalItem;
   GSDrawTiles *tiles = [self tilesNamed: name state: state];
- 
+
   if (tiles == nil)
     {
       NSColor	*backgroundColor = [cell backgroundColor];
@@ -1348,7 +1383,7 @@
                               state: GSThemeNormalState];
   NSInterfaceStyle style = NSInterfaceStyleForKey(@"NSMenuInterfaceStyle", nil);
 
-  // TODO: Remove the style check... Windows theming should be in a subclass 
+  // TODO: Remove the style check... Windows theming should be in a subclass
   // probably
   if (color == nil && style == NSWindows95InterfaceStyle)
     {
@@ -1380,15 +1415,15 @@
                              isHorizontal: (BOOL)isHorizontal
 {
   GSDrawTiles *tiles;
- 
+
   tiles = [self tilesNamed: GSMenuSeparatorItem state: GSThemeNormalState];
   if (tiles == nil)
     {
       NSBezierPath *path = [NSBezierPath bezierPath];
       CGFloat inset = [self menuSeparatorInset];
-      NSPoint start = NSMakePoint(inset, cellFrame.size.height / 2 + 
+      NSPoint start = NSMakePoint(inset, cellFrame.size.height / 2 +
 				         cellFrame.origin.y + 0.5);
-      NSPoint end = NSMakePoint(cellFrame.size.width - inset, 
+      NSPoint end = NSMakePoint(cellFrame.size.width - inset,
         cellFrame.size.height / 2 + cellFrame.origin.y + 0.5);
 
       [[self menuSeparatorColor] set];
@@ -1426,7 +1461,7 @@
 			  withClip: (NSRect)clipRect
 {
   GSDrawTiles *tiles = [self tilesNamed: GSMenuTitleBackground state: GSThemeNormalState];
- 
+
   if (tiles == nil)
     {
       NSRect     workRect = bounds;
@@ -1439,27 +1474,27 @@
 	{
 	  titleColor = [NSColor blackColor];
 	}
- 
+
       // Draw the dark gray upper left lines for menu and black for others.
       // Rectangle 1
       workRect = NSDrawTiledRects(workRect, workRect, top_left, darkGrays, 2);
-      
+
       // Rectangle 2
       // Draw the title box's button.
       [self drawButton: workRect withClip: workRect];
-      
+
       // Overdraw white top and left lines with light gray lines for window title
       workRect.origin.y += 1;
       workRect.size.height -= 1;
       workRect.size.width -= 1;
-      
+
       // Rectangle 3
       // Paint background
       workRect.origin.x += 1;
       workRect.origin.y += 1;
       workRect.size.height -= 2;
       workRect.size.width -= 2;
-      
+
       [titleColor set];
       NSRectFill(workRect);
 
@@ -1608,7 +1643,7 @@ static NSImage *spinningImages[MaxCount];
 - (void) initProgressIndicatorDrawing
 {
   int i;
-  
+
   // FIXME: Should come from defaults and should be reset when defaults change
   // FIXME: Should probably get the color from the color extension list (see NSToolbar)
   fillColour = RETAIN([NSColor controlShadowColor]);
@@ -1618,7 +1653,7 @@ static NSImage *spinningImages[MaxCount];
     {
       NSString *imgName = [NSString stringWithFormat: @"common_ProgressIndeterminate_%d", i + 1];
       NSImage *image = [NSImage imageNamed: imgName];
-      
+
       if (image == nil)
         {
           indeterminateMaxCount = i;
@@ -1626,19 +1661,19 @@ static NSImage *spinningImages[MaxCount];
         }
           indeterminateColors[i] = RETAIN([NSColor colorWithPatternImage: image]);
     }
-  
+
   // Load images for spinning style
   for (i = 0; i < MaxCount; i++)
     {
       NSString *imgName = [NSString stringWithFormat: @"common_ProgressSpinning_%d", i + 1];
       NSImage *image = [NSImage imageNamed: imgName];
-      
+
       if (image == nil)
         {
           spinningMaxCount = i;
           break;
         }
-      spinningImages[i] = RETAIN(image); 
+      spinningImages[i] = RETAIN(image);
     }
 }
 
@@ -1674,8 +1709,8 @@ static NSImage *spinningImages[MaxCount];
 	 {
 	   count = count % spinningMaxCount;
 	   imgBox.size = [spinningImages[count] size];
-	   [spinningImages[count] drawInRect: r 
-				    fromRect: imgBox 
+	   [spinningImages[count] drawInRect: r
+				    fromRect: imgBox
 				   operation: NSCompositeSourceOver
 				    fraction: 1.0];
 	 }
@@ -1693,11 +1728,11 @@ static NSImage *spinningImages[MaxCount];
          }
        else
          {
-           // Draw determinate 
+           // Draw determinate
            if ([progress isVertical])
              {
                float height = NSHeight(r) * val;
-               
+
                if ([progress isFlipped])
                  {
                    // Compensate for the flip
@@ -1734,7 +1769,7 @@ static NSImage *spinningImages[MaxCount];
 
       return [tiles contentRectForRect: bounds
 			     isFlipped: [[NSView focusView] isFlipped]];
-    }  
+    }
 }
 
 - (void) drawProgressIndicatorBarDeterminate: (NSRect)bounds
@@ -1790,7 +1825,7 @@ static NSImage *spinningImages[MaxCount];
     }
 
   if (tiles == nil)
-    { 
+    {
       rect = [self drawDarkButton: rect withClip: aRect];
       [[NSColor controlShadowColor] set];
       NSRectFill(rect);
@@ -1824,7 +1859,7 @@ static NSImage *spinningImages[MaxCount];
         {
           rect = [self drawButton: cellFrame withClip: cellFrame];
           [[NSColor controlColor] set];
-          NSRectFill(rect);        
+          NSRectFill(rect);
         }
       else
         {
@@ -1888,9 +1923,9 @@ static NSImage *spinningImages[MaxCount];
 
 static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 
-- (void) drawTitleBarRect: (NSRect)titleBarRect 
+- (void) drawTitleBarRect: (NSRect)titleBarRect
              forStyleMask: (unsigned int)styleMask
-                    state: (int)inputState 
+                    state: (int)inputState
                  andTitle: (NSString*)title
 {
   static const NSRectEdge edges[4] = {NSMinXEdge, NSMaxYEdge,
@@ -1926,14 +1961,14 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
         {
           normalColor = [NSColor blackColor];
         }
- 
+
       mainColor = [self colorNamed: @"mainWindowFrameTextColor"
                              state: GSThemeNormalState];
       if (nil == mainColor)
         {
           mainColor = [NSColor windowFrameTextColor];
         }
- 
+
       titleTextAttributes[0] = [[NSMutableDictionary alloc]
 	initWithObjectsAndKeys:
 	  [NSFont titleBarFontOfSize: 0], NSFontAttributeName,
@@ -1973,7 +2008,7 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
           borderColor = [NSColor blackColor];
         }
       [borderColor set];
- 
+
       PSmoveto(0, NSMinY(titleBarRect) + 0.5);
       PSrlineto(titleBarRect.size.width, 0);
       PSstroke();
@@ -1988,11 +2023,11 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
       workRect.size.height -= 2;
 
       workRect = NSDrawTiledRects(workRect, workRect, edges, grays[inputState], 4);
-     
+
       /*
       Draw the background.
       */
-      switch (inputState) 
+      switch (inputState)
 	{
 	default:
 	case 0:
@@ -2018,7 +2053,7 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
   if (styleMask & NSTitledWindowMask)
     {
       NSSize titleSize;
-    
+
       if (styleMask & NSMiniaturizableWindowMask)
 	{
 	  workRect.origin.x += 17;
@@ -2028,7 +2063,7 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 	{
 	  workRect.size.width -= 17;
 	}
-  
+
       titleSize = [title sizeWithAttributes: titleTextAttributes[inputState]];
       if (titleSize.width <= workRect.size.width)
 	workRect.origin.x = NSMidX(workRect) - titleSize.width / 2;
@@ -2094,13 +2129,13 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
     }
 }
 
-- (void) drawWindowBorder: (NSRect)rect 
-                withFrame: (NSRect)frame 
+- (void) drawWindowBorder: (NSRect)rect
+                withFrame: (NSRect)frame
              forStyleMask: (unsigned int)styleMask
-                    state: (int)inputState 
+                    state: (int)inputState
                  andTitle: (NSString*)title
 {
-  if (styleMask & (NSTitledWindowMask | NSClosableWindowMask 
+  if (styleMask & (NSTitledWindowMask | NSClosableWindowMask
                    | NSMiniaturizableWindowMask))
     {
       NSRect titleBarRect;
@@ -2108,9 +2143,9 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
       titleBarRect = NSMakeRect(0.0, frame.size.height - TITLE_HEIGHT,
                                 frame.size.width, TITLE_HEIGHT);
       if (NSIntersectsRect(rect, titleBarRect))
-        [self drawTitleBarRect: titleBarRect 
+        [self drawTitleBarRect: titleBarRect
               forStyleMask: styleMask
-              state: inputState 
+              state: inputState
               andTitle: title];
     }
 
@@ -2123,7 +2158,7 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
         [self drawResizeBarRect: resizeBarRect];
     }
 
-  if (styleMask & (NSTitledWindowMask | NSClosableWindowMask 
+  if (styleMask & (NSTitledWindowMask | NSClosableWindowMask
                    | NSMiniaturizableWindowMask | NSResizableWindowMask))
     {
       NSColor *borderColor = [self colorNamed: @"windowBorderColor"
@@ -2166,10 +2201,10 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 {
   NSSize buttonSize = [[closeButton image] size];
   buttonSize = NSMakeSize(buttonSize.width + 3, buttonSize.height + 3);
-  
+
   [closeButton setFrame: NSMakeRect(viewSize.width - buttonSize.width - 4,
-                   		   (viewSize.height - buttonSize.height) / 2,
-  		                    buttonSize.width, 
+                                   (viewSize.height - buttonSize.height) / 2,
+                                    buttonSize.width,
 				    buttonSize.height)];
 }
 
@@ -2177,9 +2212,9 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 {
   GSTheme *theme = [GSTheme theme];
 
-  return NSMakeRect(bounds.size.width - [theme titlebarButtonSize] - 
-				   [theme titlebarPaddingRight], bounds.size.height - 
-				   [theme titlebarButtonSize] - [theme titlebarPaddingTop], 
+  return NSMakeRect(bounds.size.width - [theme titlebarButtonSize] -
+				   [theme titlebarPaddingRight], bounds.size.height -
+				   [theme titlebarButtonSize] - [theme titlebarPaddingTop],
 				   [theme titlebarButtonSize], [theme titlebarButtonSize]);
 }
 
@@ -2187,8 +2222,8 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 {
   GSTheme *theme = [GSTheme theme];
 
-  return NSMakeRect([theme titlebarPaddingLeft], 
-		    bounds.size.height - [theme titlebarButtonSize] - [theme titlebarPaddingTop], 
+  return NSMakeRect([theme titlebarPaddingLeft],
+		    bounds.size.height - [theme titlebarButtonSize] - [theme titlebarPaddingTop],
 		    [theme titlebarButtonSize],
 		    [theme titlebarButtonSize]);
 }
@@ -2207,7 +2242,7 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 }
 
 - (void) drawBrowserHeaderCell: (NSTableHeaderCell*)cell
-	 	     withFrame: (NSRect)rect
+                     withFrame: (NSRect)rect
 			inView: (NSView*)view;
 {
   GSDrawTiles *tiles;
@@ -2268,7 +2303,7 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 
   switch (part)
     {
-    case GSTabSelectedLeft: 
+    case GSTabSelectedLeft:
       partString = @"SelectedLeft";
       break;
     case GSTabSelectedRight:
@@ -2343,11 +2378,11 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
       else if (part == GSTabBackgroundFill)
 	name = GSTabViewRightBackgroundTabFill;
     }
-  
+
   return [self tilesNamed: name state: GSThemeNormalState];
 }
 
-- (void) frameTabRectTopAndBottom: (NSRect)aRect 
+- (void) frameTabRectTopAndBottom: (NSRect)aRect
 			 topColor: (NSColor *)topColor
 		      bottomColor: (NSColor *)bottomColor
 {
@@ -2381,8 +2416,8 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 				 bottomColor: [NSColor whiteColor]];
 	      break;
 	    case GSTabUnSelectedFill:
-	      [self frameTabRectTopAndBottom: aRect 
-				    topColor: [NSColor darkGrayColor] 
+	      [self frameTabRectTopAndBottom: aRect
+				    topColor: [NSColor darkGrayColor]
 				 bottomColor: [NSColor whiteColor]];
 	      break;
 	    case GSTabBackgroundFill:
@@ -2453,27 +2488,27 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
   switch (type)
     {
       default:
-      case NSTopTabsBezelBorder: 
+      case NSTopTabsBezelBorder:
         aRect.size.height -= tabHeight;
         aRect.origin.y += tabHeight;
         break;
 
-      case NSBottomTabsBezelBorder: 
+      case NSBottomTabsBezelBorder:
         aRect.size.height -= tabHeight;
         break;
 
-      case NSLeftTabsBezelBorder: 
+      case NSLeftTabsBezelBorder:
         aRect.size.width -= tabHeight;
         aRect.origin.x += tabHeight;
         break;
 
-      case NSRightTabsBezelBorder: 
+      case NSRightTabsBezelBorder:
         aRect.size.width -= tabHeight;
         break;
 
-      case NSNoTabsBezelBorder: 
-      case NSNoTabsLineBorder: 
-      case NSNoTabsNoBorder: 
+      case NSNoTabsBezelBorder:
+      case NSNoTabsLineBorder:
+      case NSNoTabsNoBorder:
         break;
     }
 
@@ -2507,8 +2542,8 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 	  cRect.size.height -= 2;
 	  break;
 	case NSNoTabsLineBorder:
-	  cRect.origin.y += 1; 
-	  cRect.origin.x += 1; 
+	  cRect.origin.y += 1;
+	  cRect.origin.x += 1;
 	  cRect.size.width -= 2;
 	  cRect.size.height -= 2;
 	  break;
@@ -2533,7 +2568,7 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 	case NSNoTabsNoBorder:
 	default:
 	  break;
-	}     
+	}
     }
   else
     {
@@ -2576,11 +2611,11 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 	  [self drawButton: aRect withClip: NSZeroRect];
 	  break;
 	case NSNoTabsBezelBorder:
-       	  break;	
+          break;
 	case NSNoTabsLineBorder:
 	  [[NSColor controlDarkShadowColor] set];
 	  NSFrameRect(aRect);
-	  break;	  
+	  break;
 	case NSNoTabsNoBorder:
 	  break;
 	}
@@ -2607,12 +2642,12 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 
   const BOOL truncate = [(NSTabView *)view allowsTruncatedLabels];
   const CGFloat tabHeight = [self tabHeightForType: type];
-  
+
   DPSgsave(ctxt);
-  
+
   [self drawTabViewBezelRect: aRect
- 		 tabViewType: type
- 		      inView: view];
+                 tabViewType: type
+                      inView: view];
 
   if (type == NSBottomTabsBezelBorder
       || type == NSTopTabsBezelBorder)
@@ -2623,7 +2658,7 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
       else
 	iP = NSMakePoint(aRect.origin.x, NSMaxY(aRect));
 
-      for (i = 0; i < howMany; i++) 
+      for (i = 0; i < howMany; i++)
         {
           NSRect r;
           NSTabViewItem *anItem = [items objectAtIndex: i];
@@ -2633,7 +2668,7 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 	  // Draw the left image
 
           if (i == 0)
-            {	    
+            {
 	      NSImage *part = nil;
 	      if (itemState == NSSelectedTab)
                 {
@@ -2705,7 +2740,7 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 
           // Label
           [anItem drawLabel: truncate inRect: r];
-          
+
           iP.x += s.width;
           previousState = itemState;
 
@@ -2715,9 +2750,9 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
             {
 	      NSImage *part = nil;
               if ([anItem tabState] == NSSelectedTab)
-                {              
+                {
 		  part = [self imageForTabPart: GSTabSelectedRight type: type];
-                }  
+                }
               else if ([anItem tabState] == NSBackgroundTab)
                 {
 		  part = [self imageForTabPart: GSTabUnSelectedRight type: type];
@@ -2778,12 +2813,12 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 
   if (NSIntersectsRect (rect, rectForPartDecrementLine) == YES)
     {
-      [scroller drawArrow: NSScrollerDecrementArrow 
+      [scroller drawArrow: NSScrollerDecrementArrow
 		highlight: hitPart == NSScrollerDecrementLine];
     }
   if (NSIntersectsRect (rect, rectForPartIncrementLine) == YES)
     {
-      [scroller drawArrow: NSScrollerIncrementArrow 
+      [scroller drawArrow: NSScrollerIncrementArrow
 		highlight: hitPart == NSScrollerIncrementLine];
     }
 }
@@ -2807,8 +2842,8 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
     {
       int i;
 
-      for (i = [browser firstVisibleColumn]; 
-	   i <= [browser lastVisibleColumn]; 
+      for (i = [browser firstVisibleColumn];
+	   i <= [browser lastVisibleColumn];
 	   ++i)
         {
           NSRect titleRect = [browser titleFrameOfColumn: i];
@@ -2824,44 +2859,44 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 
   if ([self browserUseBezels])
     {
-      if ([browser hasHorizontalScroller] && 
+      if ([browser hasHorizontalScroller] &&
 	  [browser separatesColumns])
 	{
 	  NSRect scrollerBorderRect = scrollerRect;
 	  NSSize bs = [self sizeForBorderType: NSBezelBorder];
-	  
+
 	  scrollerBorderRect.origin.x = 0;
 	  scrollerBorderRect.origin.y = 0;
 	  scrollerBorderRect.size.width += 2 * bs.width;
 	  scrollerBorderRect.size.height += (2 * bs.height) - 1;
-	  
+
 	  if ((NSIntersectsRect (scrollerBorderRect, rect) == YES) && [view window])
 	    {
 	      [self drawGrayBezel: scrollerBorderRect withClip: rect];
 	    }
 	}
-      
+
       if (![browser separatesColumns])
 	{
 	  NSPoint p1,p2;
 	  int     i, visibleColumns;
-	  float   hScrollerWidth = [browser hasHorizontalScroller] ? 
+	  float   hScrollerWidth = [browser hasHorizontalScroller] ?
 	    [NSScroller scrollerWidth] : 0;
-	  
+
 	  // Columns borders
 	  [self drawGrayBezel: bounds withClip: rect];
-	  
+
 	  [[NSColor blackColor] set];
-	  visibleColumns = [browser numberOfVisibleColumns]; 
+	  visibleColumns = [browser numberOfVisibleColumns];
 	  for (i = 1; i < visibleColumns; i++)
 	    {
-	      p1 = NSMakePoint((columnSize.width * i) + 2 + (i-1), 
+	      p1 = NSMakePoint((columnSize.width * i) + 2 + (i-1),
                            columnSize.height + hScrollerWidth + 2);
 	      p2 = NSMakePoint((columnSize.width * i) + 2 + (i-1),
 			       hScrollerWidth + 2);
 	      [NSBezierPath strokeLineFromPoint: p1 toPoint: p2];
 	    }
-	  
+
 	  // Horizontal scroller border
 	  if ([browser hasHorizontalScroller])
 	    {
@@ -2875,7 +2910,7 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
    if (![self browserUseBezels]
        && [self scrollViewScrollersOverlapBorders])
     {
-      NSRect baseRect = NSMakeRect(0, 0, bounds.size.width, 1); 
+      NSRect baseRect = NSMakeRect(0, 0, bounds.size.width, 1);
       NSRect colFrame = [browser frameOfColumn: [browser firstVisibleColumn]];
       NSRect scrollViewRect = NSUnionRect(baseRect, colFrame);
 
@@ -2890,7 +2925,7 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 - (CGFloat) browserColumnSeparation
 {
   NSUserDefaults *defs = [NSUserDefaults standardUserDefaults];
-  
+
   if ([defs objectForKey: @"GSBrowserColumnSeparation"] != nil)
     {
       return [defs floatForKey: @"GSBrowserColumnSeparation"];
@@ -2904,7 +2939,7 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 - (CGFloat) browserVerticalPadding
 {
   NSUserDefaults *defs = [NSUserDefaults standardUserDefaults];
-  
+
   if ([defs objectForKey: @"GSBrowserVerticalPadding"] != nil)
     {
       return [defs floatForKey: @"GSBrowserVerticalPadding"];
@@ -2918,7 +2953,7 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 - (BOOL) browserUseBezels
 {
   NSUserDefaults *defs = [NSUserDefaults standardUserDefaults];
-  
+
   if ([defs objectForKey: @"GSBrowserUseBezels"] != nil)
     {
       return [defs boolForKey: @"GSBrowserUseBezels"];
@@ -2943,13 +2978,13 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 	withFrame: bounds
 	dirtyRect: rect
 	horizontal: horizontal];
-  
+
   // Draw the menu cells.
   for (i = 0; i < howMany; i++)
     {
       NSRect aRect;
       NSMenuItemCell *aCell;
-      
+
       aRect = [menuView rectOfItemAtIndex: i];
       if (NSIntersectsRect(rect, aRect) == YES)
         {
@@ -2960,7 +2995,7 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 }
 
 - (void) drawScrollViewRect: (NSRect)rect
-		     inView: (NSView *)view 
+		     inView: (NSView *)view
 {
   NSScrollView  *scrollView = (NSScrollView *)view;
   GSTheme	*theme = [GSTheme theme];
@@ -2990,16 +3025,16 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 	{
 	case NSNoBorder:
 	  break;
-	  
+
 	case NSLineBorder:
 	  [color set];
 	  NSFrameRect(bounds);
 	  break;
-	  
+
 	case NSBezelBorder:
 	  [theme drawGrayBezel: bounds withClip: rect];
 	  break;
-	  
+
 	case NSGrooveBorder:
 	  [theme drawGroove: bounds withClip: rect];
 	  break;
@@ -3024,9 +3059,9 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 	{
 	  NSInterfaceStyle style;
 	  CGFloat xpos;
-          
+
           scrollerFrame = [vertScroller frame];
-          
+
 	  style = NSInterfaceStyleForKey(@"NSScrollViewInterfaceStyle", nil);
 	  if (style == NSMacintoshInterfaceStyle
 	      || style == NSWindows95InterfaceStyle)
@@ -3037,7 +3072,7 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 	    {
               xpos = scrollerFrame.origin.x + scrollerWidth;
 	    }
-          NSRectFill(NSMakeRect(xpos, scrollerFrame.origin.y, 
+          NSRectFill(NSMakeRect(xpos, scrollerFrame.origin.y,
                                 1.0, scrollerFrame.size.height));
 	}
 
@@ -3046,7 +3081,7 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 	  CGFloat ypos;
 
           scrollerFrame = [horizScroller frame];
- 
+
 	  if ([scrollView isFlipped])
 	    {
 	      ypos = scrollerFrame.origin.y - 1.0;
@@ -3069,14 +3104,14 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
   NSSliderType type = [(NSSliderCell *)cell sliderType];
   if (type == NSLinearSlider)
     {
-      NSString *partName = (horizontal ? GSSliderHorizontalTrack : GSSliderVerticalTrack); 
+      NSString *partName = (horizontal ? GSSliderHorizontalTrack : GSSliderVerticalTrack);
       GSDrawTiles *tiles = [self tilesNamed: partName
 				      state: GSThemeNormalState];
 
       if (tiles == nil)
 	{
-	  [[GSTheme theme] drawBorderType: aType 
-				    frame: cellFrame 
+	  [[GSTheme theme] drawBorderType: aType
+				    frame: cellFrame
 				     view: [cell controlView]];
 	}
       else
@@ -3096,7 +3131,7 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 	    }
 	  tilesRect.origin = NSMakePoint((cellFrame.size.width - tilesRect.size.width) / 2.0,
 					 (cellFrame.size.height - tilesRect.size.height) / 2.0);
-	  
+
 	  if ([cell controlView] != nil)
 	    {
 	      tilesRect = [[cell controlView] centerScanRect: tilesRect];
@@ -3116,7 +3151,7 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
   if (type == NSLinearSlider)
     {
       BOOL horizontal = (rect.size.width > rect.size.height);
-      NSString *partName = (horizontal ? GSSliderHorizontalTrack : GSSliderVerticalTrack); 
+      NSString *partName = (horizontal ? GSSliderHorizontalTrack : GSSliderVerticalTrack);
       GSDrawTiles *tiles = [self tilesNamed: partName
 				      state: GSThemeNormalState];
 
@@ -3135,9 +3170,9 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
   NSView *controlView = [cell controlView];
   NSSliderCell *sliderCell = (NSSliderCell *)cell;
 
-  [sliderCell drawKnob: 
-		[sliderCell knobRectFlipped: 
-			      [controlView isFlipped]]];  
+  [sliderCell drawKnob:
+		[sliderCell knobRectFlipped:
+			      [controlView isFlipped]]];
 }
 
 - (NSRect) tableHeaderCellDrawingRectForBounds: (NSRect)theRect
@@ -3180,10 +3215,10 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
     lastColumnToDraw = [tableView numberOfColumns] - 1;
 
   drawingRect = [tableHeaderView headerRectOfColumn: firstColumnToDraw];
-  
+
   columns = [tableView tableColumns];
   highlightedTableColumn = [tableView highlightedTableColumn];
-  
+
   for (i = firstColumnToDraw; i <= lastColumnToDraw; i++)
     {
       column = [columns objectAtIndex: i];
@@ -3238,19 +3273,19 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 
   [backgroundColor set];
   NSRectFill (aRect);
-  
+
   if ([tableView usesAlternatingRowBackgroundColors])
     {
       const CGFloat rowHeight = [tableView rowHeight];
       NSInteger startingRow = [tableView rowAtPoint: NSMakePoint(0, NSMinY(aRect))];
       NSInteger endingRow;
       NSInteger i;
-      
+
       NSArray *rowColors = [NSColor controlAlternatingRowBackgroundColors];
       const NSUInteger rowColorCount = [rowColors count];
-      
+
       NSRect rowRect;
-      
+
       if (rowHeight <= 0
 	  || rowColorCount == 0
 	  || aRect.size.height <= 0)
@@ -3258,20 +3293,20 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 
       if (startingRow <= 0)
 	startingRow = 0;
-      
+
       rowRect = [tableView rectOfRow: startingRow];
       rowRect.origin.x = aRect.origin.x;
       rowRect.size.width = aRect.size.width;
-      
+
       endingRow = startingRow + ceil(aRect.size.height / rowHeight);
-      
+
       for (i = startingRow; i <= endingRow; i++)
 	{
 	  NSColor *color = [rowColors objectAtIndex: (i % rowColorCount)];
-	  
+
 	  [color set];
 	  NSRectFill(rowRect);
-	  
+
 	  rowRect.origin.y += rowHeight;
 	}
     }
@@ -3303,7 +3338,7 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
     startingRow = 0;
   if (endingRow == -1)
     endingRow = numberOfRows - 1;
-  
+
   if (startingColumn == -1)
     startingColumn = 0;
   if (endingColumn == -1)
@@ -3325,7 +3360,7 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 	  NSRectFill(rowRect);
 	}
     }
-  
+
   // Draw vertical lines
   if (numberOfColumns > 0)
     {
@@ -3369,8 +3404,14 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
     {
       [tableView drawGridInClipRect: aRect];
     }
-  
+
   /* Draw visible cells */
+  /* An invalidated strip below the last row contains only background. Do not
+     interpret its two missing row indexes as a request to draw every row. */
+  aRect = NSIntersectionRect(aRect, NSUnionRect([tableView rectOfRow: 0],
+    [tableView rectOfRow: numberOfRows - 1]));
+  if (NSIsEmptyRect(aRect))
+    return;
   /* Using rowAtPoint: here calls them only twice per drawn rect */
   startingRow = [tableView rowAtPoint: NSMakePoint (0, NSMinY (aRect))];
   endingRow   = [tableView rowAtPoint: NSMakePoint (0, NSMaxY (aRect))];
@@ -3387,9 +3428,9 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
   {
     SEL sel = @selector(drawRow:clipRect:);
     void (*imp)(id, SEL, NSInteger, NSRect);
-    
+
     imp = (void (*)(id, SEL, NSInteger, NSRect))[tableView methodForSelector: sel];
-    
+
     for (i = startingRow; i <= endingRow; i++)
       {
         imp(tableView, sel, i, aRect);
@@ -3410,7 +3451,7 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
   // Set the fill color
   {
     NSColor *selectionColor;
-    
+
     selectionColor = [self colorNamed: @"highlightedTableRowBackgroundColor"
 				state: GSThemeNormalState];
 
@@ -3430,37 +3471,37 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
       NSUInteger row;
       NSInteger startingRow, endingRow;
 
-      selectedRowsCount = [selectedRows count];      
+      selectedRowsCount = [selectedRows count];
       if (selectedRowsCount == 0)
 	return;
-      
+
       /* highlight selected rows */
       startingRow = [tableView rowAtPoint: NSMakePoint(0, NSMinY(clipRect))];
       endingRow   = [tableView rowAtPoint: NSMakePoint(0, NSMaxY(clipRect))];
-      
+
       if (startingRow == -1)
 	startingRow = 0;
       if (endingRow == -1)
 	endingRow = numberOfRows - 1;
-      
+
       row = [selectedRows indexGreaterThanOrEqualToIndex: startingRow];
       while ((row != NSNotFound) && (row <= endingRow))
 	{
 	  NSRectFill(NSIntersectionRect([tableView rectOfRow: row], clipRect));
 	  row = [selectedRows indexGreaterThanIndex: row];
-	}	  
+	}
     }
   else // Selecting columns
     {
       NSUInteger selectedColumnsCount;
       NSUInteger column;
       NSInteger startingColumn, endingColumn;
-      
+
       selectedColumnsCount = [selectedColumns count];
-      
+
       if (selectedColumnsCount == 0)
 	return;
-      
+
       /* highlight selected columns */
       startingColumn = [tableView columnAtPoint: NSMakePoint(NSMinX(clipRect), 0)];
       endingColumn = [tableView columnAtPoint: NSMakePoint(NSMaxX(clipRect), 0)];
@@ -3476,18 +3517,18 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 	  NSRectFill(NSIntersectionRect([tableView rectOfColumn: column],
 					clipRect));
 	  column = [selectedColumns indexGreaterThanIndex: column];
-	}	  
+	}
     }
 }
 
-- (void) drawTableViewRow: (NSInteger)rowIndex 
+- (void) drawTableViewRow: (NSInteger)rowIndex
 		 clipRect: (NSRect)clipRect
 		   inView: (NSTableView *)tableView
 {
   NSInteger editedRow = [tableView editedRow];
   NSInteger editedColumn = [tableView editedColumn];
   NSArray *tableColumns = [tableView tableColumns];
-  NSInteger startingColumn; 
+  NSInteger startingColumn;
   NSInteger endingColumn;
   NSTableColumn *tb;
   NSRect drawingRect;
@@ -3501,7 +3542,7 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
   [tableView _calculatedStartingColumn: &startingColumn
 			  endingColumn: &endingColumn
 			    inClipRect: clipRect];
-  
+
   /* Draw the row between startingColumn and endingColumn */
   for (i = startingColumn; i <= endingColumn; i++)
     {
@@ -3617,7 +3658,7 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
   return drawingRect;
 }
 
-- (void) drawOutlineViewRow: (NSInteger)rowIndex 
+- (void) drawOutlineViewRow: (NSInteger)rowIndex
 		   clipRect: (NSRect)clipRect
 		     inView: (NSOutlineView *)outlineView
 {
@@ -3642,7 +3683,7 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
   [outlineView _calculatedStartingColumn: &startingColumn
 			    endingColumn: &endingColumn
 			      inClipRect: clipRect];
-  
+
   /* Draw the row between startingColumn and endingColumn */
   for (i = startingColumn; i <= endingColumn; i++)
     {
@@ -3676,14 +3717,14 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 				  drawingRect: drawingRect
 				     rowIndex: rowIndex];
 	}
-      
+
       [cell drawWithFrame: drawingRect inView: outlineView];
       if (i == editedColumn && rowIndex == editedRow)
         {
           [cell _setInEditing: NO];
           [cell setShowsFirstResponder: NO];
         }
-    }  
+    }
 }
 
 - (BOOL) isBoxOpaque: (NSBox *)box
@@ -3727,7 +3768,7 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
       color = [box borderColor];
       if (!color || [color isEqual:[NSColor clearColor]])
         {
-    	  color = [NSColor controlShadowColor];
+          color = [NSColor controlShadowColor];
         }
       [color set];
       NSRectFill([box borderRect]);
@@ -3737,7 +3778,7 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
   // Draw border
 
   GSDrawTiles *tiles = [[GSTheme theme] tilesNamed: GSBoxBorder state: GSThemeNormalState];
-  if (tiles == nil 
+  if (tiles == nil
       || borderType == NSNoBorder
       || boxType == NSBoxOldStyle
       || boxType == NSBoxCustom)
@@ -3748,9 +3789,9 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 
       switch (borderType)
 	{
-	case NSNoBorder: 
+	case NSNoBorder:
 	  break;
-	case NSLineBorder: 
+	case NSLineBorder:
 	  if (boxType == NSBoxCustom)
 	    {
 	      [[box borderColor] set];
@@ -3765,7 +3806,7 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 	case NSBezelBorder:
 	  [[GSTheme theme] drawDarkBezel: [box borderRect] withClip: clipRect];
 	  break;
-	case NSGrooveBorder: 
+	case NSGrooveBorder:
 	  [[GSTheme theme] drawGroove: [box borderRect] withClip: clipRect];
 	  break;
 	}
@@ -3773,18 +3814,18 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
   else
     {
       drawTitleBackground = NO;
-      
-      // If the title is on the border, clip a hole in the later 
+
+      // If the title is on the border, clip a hole in the later
 
       [NSGraphicsContext saveGraphicsState];
-      
+
       if ((borderType != NSNoBorder)
 	  && (([box titlePosition] == NSAtTop) || ([box titlePosition] == NSAtBottom)))
 	{
 	  const NSRect borderRect = [box borderRect];
 	  const NSRect titleRect = [box titleRect];
 	  NSBezierPath *path = [NSBezierPath bezierPath];
-	  
+
 	  // Left
 	  if (NSMinX(titleRect) > NSMinX(borderRect))
 	    {
@@ -3792,7 +3833,7 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 	      left.size.width = NSMinX(titleRect) - NSMinX(borderRect);
 	      [path appendBezierPathWithRect: left];
 	    }
-	  
+
 	  // Right
 	  if (NSMaxX(borderRect) > NSMaxX(titleRect))
 	    {
@@ -3800,8 +3841,8 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 	      right.size.width = NSMaxX(borderRect) - NSMaxX(titleRect);
 	      right.origin.x = NSMaxX(titleRect);
 	      [path appendBezierPathWithRect: right];
-	    }      
-	  
+	    }
+
 	  // MinY
 	  if (NSMinY(titleRect) > NSMinY(borderRect))
 	    {
@@ -3809,7 +3850,7 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 	      minY.size.height = NSMinY(titleRect) - NSMinY(borderRect);
 	      [path appendBezierPathWithRect: minY];
 	    }
-	  
+
 	  // MaxY
 	  if (NSMaxY(borderRect) > NSMaxY(titleRect))
 	    {
@@ -3817,18 +3858,18 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 	      maxY.size.height = NSMaxY(borderRect) - NSMaxY(titleRect);
 	      maxY.origin.y = NSMaxY(titleRect);
 	      [path appendBezierPathWithRect: maxY];
-	    }      
-	  
+	    }
+
 	  if (![path isEmpty])
 	    {
 	      [path addClip];
 	    }
 	}
 
-      
+
       [[GSTheme theme] fillRect: [box borderRect]
 		      withTiles: tiles];
-      
+
       // Restore clipping path
       [NSGraphicsContext restoreGraphicsState];
     }
@@ -3837,11 +3878,11 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
   // Draw title
   if ([box titlePosition] != NSNoTitle)
     {
-      // If the title is on the border, clip a hole in the later 
+      // If the title is on the border, clip a hole in the later
       if (drawTitleBackground
 	  && (borderType != NSNoBorder)
 	  && (([box titlePosition] == NSAtTop) || ([box titlePosition] == NSAtBottom)))
-	{	  
+	{
 	  [color set];
 	  NSRectFill([box titleRect]);
 	}
@@ -3854,7 +3895,7 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 		 withFrame: (NSRect)cellFrame
 		    inView: (NSView *)view
 {
-  [cell _drawEditorWithFrame: cellFrame 
+  [cell _drawEditorWithFrame: cellFrame
 		      inView: view];
 }
 
@@ -3863,12 +3904,12 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
      attributedText: (NSAttributedString *)stringValue
 	    inFrame: (NSRect)cellFrame
 {
-  [cell _drawAttributedText: stringValue 
+  [cell _drawAttributedText: stringValue
 		    inFrame: cellFrame];
 }
 
 // NSBrowserCell
-- (void) drawBrowserInteriorWithFrame: (NSRect)cellFrame 
+- (void) drawBrowserInteriorWithFrame: (NSRect)cellFrame
 			     withCell: (NSBrowserCell *)cell
 			       inView: (NSView *)controlView
 			    withImage: (NSImage *)theImage
@@ -3899,9 +3940,9 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
 
       // (Don't fill the background)
     }
-  
+
   // Draw the branch image if there is one
-  if (branch_image) 
+  if (branch_image)
     {
       NSRect imgRect;
 
@@ -3927,12 +3968,12 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
   // Skip 2 points from the left border
   title_rect.origin.x += 2;
   title_rect.size.width -= 2;
-  
+
   // Draw the cell image if there is one
-  if (cell_image) 
+  if (cell_image)
     {
       NSRect imgRect;
-      
+
       imgRect.size = [cell_image size];
       imgRect.origin.x = NSMinX(title_rect);
       imgRect.origin.y = MAX(NSMidY(title_rect) - (imgRect.size.height/2.),0.);
@@ -3956,8 +3997,8 @@ static NSDictionary *titleTextAttributes[3] = {nil, nil, nil};
   // Draw the body of the cell
   if ([cell _inEditing])
     {
-      [self drawEditorForCell: cell 
-		    withFrame: cellFrame 
+      [self drawEditorForCell: cell
+		    withFrame: cellFrame
 		       inView: controlView];
     }
   else

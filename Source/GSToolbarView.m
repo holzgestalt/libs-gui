@@ -719,7 +719,8 @@ static NSUInteger draggedItemIndex = NSNotFound;
         NSRect viewFrame = [view frame];
         // Subtract InsetItemViewX
         viewFrame.size.width = [backView frame].size.width - 2 * InsetItemViewX;
-        viewFrame.origin.x = InsetItemViewX;
+        viewFrame.size = GSToolbarConstrainedSize(view, viewFrame.size);
+        viewFrame.origin.x = ([backView frame].size.width - viewFrame.size.width) / 2;
         [view setFrame: viewFrame];
       }
     x += [backView frame].size.width;

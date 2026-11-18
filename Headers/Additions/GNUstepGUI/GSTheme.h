@@ -263,6 +263,13 @@
 @class GSDrawTiles;
 @class GSTitleView;
 
+@protocol GSNativeTableView <NSObject>
+- (BOOL) update;
+- (void) reloadData;
+- (void) scrollRowToVisible: (NSInteger)row;
+- (void) invalidate;
+@end
+
 APPKIT_EXPORT	NSString	*GSSwitch;
 APPKIT_EXPORT   NSString        *GSRadio;
 
@@ -468,15 +475,14 @@ APPKIT_EXPORT	NSString	*GSThemeWillDeactivateNotification;
   methods.
   </p>
   <p>
-  The default implementation uses the standard configurable colors
-  defined in NSColor, such as <code>controlLightHighlightColor</code>,
-  <code>controlShadowColor</code> and <code>controlDarkShadowColor</code>.<br />
-  Themes are expected to override the default system color list with their
-  own versions, and this class cooperates with [NSColor] and [NSColorList]
-  to establish the correct system color list when a theme is activated.
+  Concrete providers supply the drawing methods and may override the system
+  color list. This class coordinates provider activation with [NSColor] and
+  [NSColorList]; it supplies no default appearance.
   </p>
   <p>
-  The class provides a mechanism for automatic loading of theme bundles
+  The following historical bundle documentation does not apply to this build.
+  This build selects a linked provider with the application link unit.
+  Previously the class provided automatic loading of theme bundles
   consisting of resources used to define how drawing is done, plus an
   optional binary subclass of this class (to replace/extend the drawing
   methods this class provides).
@@ -488,6 +494,11 @@ APPKIT_EXPORT	NSString	*GSThemeWillDeactivateNotification;
   use the appropriate behavior.
   </p>
 */ 
+/** An application must define GSApplicationThemeClass(void), returning a
+ * concrete GSTheme subclass supplied by its linked provider. AppKit supplies
+ * no default appearance and loads no theme bundles. Missing providers cause
+ * an NSInternalInconsistencyException at first theme use.
+ */
 APPKIT_EXPORT_CLASS
 @interface GSTheme : NSObject
 {
@@ -495,35 +506,18 @@ APPKIT_EXPORT_CLASS
   void		*_reserved;
 }
 
-/**
- * Loads a theme from a theme bundle of the specified name, which may be
- * either a full path name of the theme bundle, or a simple theme name
- * (in which case the standard directories are searched for it) or nil
- * (in which case the default GNUstep theme is returned).<br />
- * Returns the loaded theme but does not make it the current theme,
- * to do that you will need to call the +setTheme: method.
+/** Returns the application-linked provider for nil, an empty name or its own name.
+ * Other names and bundle paths return nil; no code is loaded at runtime.
  */
 + (GSTheme*) loadThemeNamed: (NSString*)themeName;
 
-/**
- * Creates and displays a panel allowing selection of different themes
- * and display of the current theme inspector.
- */
+/** Retained for source compatibility; does nothing. */
 + (void) orderFrontSharedThemePanel: (id)sender;
 
-/**
- * Set the currently active theme to be the instance specified.<br />
- * You do not normally need to call this method as it is called
- * automatically when the user default which specifies the current
- * theme (GSTheme) is updated.
- */
+/** Retained for source compatibility; the application-linked provider cannot change. */
 + (void) setTheme: (GSTheme*)theme;
 
-/**
- * Returns the currently active theme instance.  This is the value most
- * recently set using +setTheme: or (if none has been set) is a default
- * instance of the base class.
- */
+/** Returns the single provider selected when the application was linked. */
 + (GSTheme*) theme;
 
 /**
@@ -554,6 +548,11 @@ APPKIT_EXPORT_CLASS
  * </p>
  */
 - (void) activate;
+
+/** Called after AppKit connects to its display server, before it creates the
+ * initial graphics context and fonts. Native providers can defer resources
+ * that require a connected backend when the theme was requested earlier. */
+- (void) displayServerDidConnect;
 
 /**
  * Returns the names of the theme's authors.
@@ -1341,6 +1340,23 @@ APPKIT_EXPORT_CLASS
 	       withItems: (NSArray *)items
 	    selectedItem: (NSTabViewItem *)item;
 
+/** Optional whole-widget scroller drawing, including disabled controls.
+ * Return NO to retain the standard part-based drawing path. */
+- (BOOL) drawNativeScroller: (NSScroller *)scroller dirtyRect: (NSRect)rect;
+
+/** Optional interactive table peer. The table retains the returned object.
+ * Peers implement update (BOOL), reloadData, scrollRowToVisible:, invalidate.
+ * Returning nil preserves the AppKit implementation. No platform widget types
+ * are exposed through this interface. */
+- (id<GSNativeTableView>) nativeTableViewForTableView: (NSTableView *)table;
+
+/** Optional geometry matching whole-widget rendering. Return YES even for
+ * absent parts (with NSZeroRect), or NO to use the standard geometry.
+ * Coordinates are in the scroller's flipped bounds. */
+- (BOOL) getScrollerRect: (NSRect *)rect
+               forPart: (NSScrollerPart)part
+            inScroller: (NSScroller *)scroller;
+
 - (void) drawScrollerRect: (NSRect)rect
 		   inView: (NSView *)view
       		  hitPart: (NSScrollerPart)hitPart
@@ -1569,6 +1585,18 @@ withRepeatedImage: (NSImage*)image
  */
 - (BOOL) doesProcessEventsForPopUpMenu;
 
+/** Return YES after tracking a menu with a platform-native implementation.
+ * Returning NO keeps the standard AppKit tracking path. The native tracker
+ * must return only after selection or cancellation and release its input grab
+ * before dispatching an action. */
+- (BOOL) trackMenuView: (NSMenuView *)menuView withEvent: (NSEvent *)event;
+
+/** Synchronously display an explicitly positioned native menu. The rectangle
+ * is in AppKit screen coordinates. Return NO to use the AppKit popup path. */
+- (BOOL) displayNativePopUpMenu: (NSMenu *)menu
+                 atScreenRect: (NSRect)rect
+                    forWindow: (NSWindow *)window;
+
 /**
  * Display the menu icon in the application.
  */
@@ -1637,6 +1665,25 @@ withRepeatedImage: (NSImage*)image
 - (BOOL) proposedVisibility: (BOOL)visible
 	 forMenu: (NSMenu *) menu;
 @end 
+
+@interface GSTheme (NativeAlerts)
+/** Opt in to reviewing dirty documents individually when quitting. */
+- (BOOL) usesIndividualDocumentSaveAlerts;
+/** Standard document save prompt. Buttons are Save, Cancel, Discard; result
+ * uses NSAlertDefault/Alternate/OtherReturn respectively. Return NO to fall back. */
+- (BOOL) runNativeDocumentSaveAlertWithTitle: (NSString *)title
+                                  message: (NSString *)message
+                                  buttons: (NSArray *)buttons
+                                   result: (NSInteger *)result;
+/** Optional modal alert provider. Return NO to use AppKit. On YES, result is
+ * a zero-based button index. Dismissal must select cancelButton. */
+- (BOOL) runNativeAlertWithTitle: (NSString *)title
+                       message: (NSString *)message
+                       buttons: (NSArray *)buttons
+                 defaultButton: (NSInteger)defaultButton
+                  cancelButton: (NSInteger)cancelButton
+                        result: (NSInteger *)result;
+@end
 
 @interface GSTheme (OpenSavePanels)
 /**

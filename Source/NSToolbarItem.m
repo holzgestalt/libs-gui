@@ -49,11 +49,30 @@
 #import "AppKit/NSStringDrawing.h"
 #import "AppKit/NSToolbar.h"
 #import "AppKit/NSView.h"
+#import "AppKit/NSLayoutConstraint.h"
 #import "GNUstepGUI/GSToolbarView.h"
 #import "AppKit/NSToolbarItem.h"
 
 #import "NSToolbarFrameworkPrivate.h"
 #import "GSGuiPrivate.h"
+
+/* Toolbar views keep their frame-based position while explicit dimension
+   constraints determine their preferred size. */
+NSSize
+GSToolbarConstrainedSize(NSView *view, NSSize size)
+{
+  for (NSLayoutConstraint *constraint in [view constraints])
+    if ([constraint firstItem] == view && [constraint secondItem] == nil
+        && [constraint relation] == NSLayoutRelationEqual
+        && [constraint priority] == NSLayoutPriorityRequired)
+      {
+        if ([constraint firstAttribute] == NSLayoutAttributeWidth)
+          size.width = [constraint constant];
+        else if ([constraint firstAttribute] == NSLayoutAttributeHeight)
+          size.height = [constraint constant];
+      }
+  return size;
+}
 
 /*
  * Each NSToolbarItem object are coupled with a backView which is their 
@@ -610,6 +629,7 @@ NSString *GSMovableToolbarItemPboardType = @"GSMovableToolbarItemPboardType";
   
   font = NormalFont;
   
+  [view setFrameSize: GSToolbarConstrainedSize(view, [view frame].size)];
   if ([view superview] == nil) // Show the view to eventually hide it later
     [self addSubview: view];
 	
@@ -624,8 +644,8 @@ NSString *GSMovableToolbarItemPboardType = @"GSMovableToolbarItemPboardType";
           if (minSize.width > 0)
 			newSize.width = minSize.width;
           newSize.height = MAX(newSize.height, minSize.height);
-          [view setFrameSize: newSize];
         }
+      [view setFrameSize: GSToolbarConstrainedSize(view, newSize)];
     }
 
   // Adjust the layout in accordance with NSToolbarSizeMode
@@ -1416,6 +1436,8 @@ NSString *GSMovableToolbarItemPboardType = @"GSMovableToolbarItemPboardType";
       NSSize size;
 
       size = [view frame].size;
+      size = GSToolbarConstrainedSize(view, size);
+      [view setFrameSize: size];
       if (NSEqualSizes(NSZeroSize, _minSize))
           [self setMinSize: size];
       if (NSEqualSizes(NSZeroSize, _maxSize))

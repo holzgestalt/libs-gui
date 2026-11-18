@@ -44,7 +44,7 @@ main(int argc, const char **argv)
       [[[button leftAnchor] constraintEqualToAnchor: [content leftAnchor]
                                            constant: 20.0] setActive: YES];
       [[[button bottomAnchor] constraintEqualToAnchor: [content bottomAnchor]
-                                             constant: 20.0] setActive: YES];
+                                             constant: -20.0] setActive: YES];
 
       [w layoutIfNeeded];
 

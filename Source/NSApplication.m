@@ -84,6 +84,7 @@
 
 #import "GSIconManager.h"
 #import "GNUstepGUI/GSDisplayServer.h"
+#import "GNUstepGUI/GSTheme.h"
 #import "GNUstepGUI/GSServicesManager.h"
 #import "GSGuiPrivate.h"
 #import "GNUstepGUI/GSInfoPanel.h"
@@ -383,6 +384,7 @@ struct _NSModalSession {
 - (void) _windowDidBecomeMain: (NSNotification*) notification;
 - (void) _windowDidResignKey: (NSNotification*) notification;
 - (void) _windowWillClose: (NSNotification*) notification;
+- (BOOL) _hasOpenMainWindowOtherThan: (NSWindow *)window;
 - (void) _workspaceNotification: (NSNotification*) notification;
 - (NSArray *) _openFiles;
 - (NSMenu *) _dockMenu;
@@ -905,6 +907,8 @@ static BOOL _isAutolaunchChecked = NO;
   srv = [GSDisplayServer serverWithAttributes: nil];
   RETAIN(srv);
   [GSDisplayServer setCurrentServer: srv];
+
+  [[GSTheme theme] displayServerDidConnect];
 
   /* Create a default context with the attributes of the main screen.  */
   attributes = [[NSScreen mainScreen] deviceDescription];
@@ -4308,8 +4312,23 @@ struct _DelegateWrapper
     }
 }
 
+- (BOOL) _hasOpenMainWindowOtherThan: (NSWindow *)window
+{
+  // Native hosts and window-manager stacking lists need not expose AppKit's
+  // backend surfaces. The application registry also includes hidden windows.
+  for (NSWindow *candidate in GSAllWindows())
+    if (candidate != window && [candidate canBecomeMainWindow]
+        && ([candidate isVisible] || [candidate isMiniaturized]
+            || [_hidden containsObject: candidate]))
+      return YES;
+  return NO;
+}
+
 - (void) _lastWindowClosed
 {
+  // A document may have opened while this delayed callback was pending.
+  if ([self _hasOpenMainWindowOtherThan: nil])
+    return;
   if ([_delegate respondsToSelector:
     @selector(applicationShouldTerminateAfterLastWindowClosed:)])
     {
@@ -4332,25 +4351,10 @@ struct _DelegateWrapper
 {
   NSWindow *win = [notification object];
 
+  [_hidden removeObjectIdenticalTo: win];
   if (_app_is_running)
     {
-      /* FIXME Don't use GSOrderedWindows(), since it may not return all
-	 windows when the application is hidden. E.g., given a hidden
-	 application with a single window with canHide == NO, if the user
-	 closes this window it would appear as if the last window was closed. */
-      NSArray *windows_list = GSOrderedWindows();
-      NSEnumerator *iter = [windows_list objectEnumerator];
-      BOOL wasLast = YES;
-      NSWindow *tmp;
-
-      while ((tmp = [iter nextObject]))
-        {
-          if (tmp != win && [tmp canBecomeMainWindow] == YES)
-            {
-              wasLast = NO;
-	      break;
-            }
-        }
+      BOOL wasLast = ![self _hasOpenMainWindowOtherThan: win];
 
       /* Perform _lastWindowDidClose at the end of the event loop cycle so
 	 that all interested objects are notified before we terminate the

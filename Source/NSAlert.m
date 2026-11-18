@@ -63,6 +63,7 @@
 #import "AppKit/NSTextView.h"
 
 #import "GNUstepGUI/GMAppKit.h"
+#import "GNUstepGUI/GSTheme.h"
 #import "GNUstepGUI/GMArchiver.h"
 #import "GSGuiPrivate.h"
 
@@ -1485,6 +1486,27 @@ NSRunAlertPanel(
       defaultButton = @"OK";
     }
 
+  if (GSCurrentThread() == GSAppKitThread)
+    {
+      NSMutableArray *buttons = [NSMutableArray arrayWithObject: defaultButton];
+      NSMutableArray *codes = [NSMutableArray arrayWithObject: @(NSAlertDefaultReturn)];
+      NSInteger selected, cancel = 0;
+      if (alternateButton != nil)
+        {
+          cancel = [buttons count];
+          [buttons addObject: alternateButton];
+          [codes addObject: @(NSAlertAlternateReturn)];
+        }
+      if (otherButton != nil)
+        {
+          [buttons addObject: otherButton];
+          [codes addObject: @(NSAlertOtherReturn)];
+        }
+      if ([[GSTheme theme] runNativeAlertWithTitle: title message: message
+                         buttons: buttons defaultButton: 0
+                         cancelButton: cancel result: &selected])
+        return [[codes objectAtIndex: selected] integerValue];
+    }
   panel = getSomePanel(&standardAlertPanel, defaultTitle, title, message,
     defaultButton, alternateButton, otherButton);
   result = [panel runModal];

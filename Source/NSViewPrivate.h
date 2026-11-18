@@ -50,6 +50,8 @@
 - (void) _layoutEngineDidChangeAlignmentRect;
 
 - (void) _autoLayoutContentViewResized;
+- (void) _installConstraints;
+- (void) _decodeLayoutPriorities: (NSCoder *)coder;
 
 @end
 

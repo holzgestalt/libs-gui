@@ -70,6 +70,10 @@ APPKIT_EXPORT_CLASS
 
 + (id<GSWindowDecorator>) windowDecorator;
 
+/** Decoration offsets in backend frame coordinates, before content scaling. */
++ (void) offsets: (float *)left : (float *)right : (float *)top : (float *)bottom
+    forStyleMask: (NSUInteger)style;
+
 - (id) initWithFrame: (NSRect)frame window: (NSWindow *)w;
 
 - (NSRect) contentRectForFrameRect: (NSRect)aRect
@@ -85,6 +89,16 @@ APPKIT_EXPORT_CLASS
 - (void) setDocumentEdited: (BOOL)flag;
 - (void) setInputState: (int)state;
 - (void) setTitle: (NSString *)title;
+
+/** Optional native host operations. Default implementations retain backend
+ * ownership. A decorator that hosts the backend surface may handle ordering,
+ * placement and minimization, while AppKit still owns content and documents. */
+- (NSUInteger) backendWindowStyleMask;
+- (BOOL) orderNativeWindow: (NSInteger)place relativeTo: (NSInteger)other;
+- (BOOL) placeNativeWindow: (NSRect)frame;
+- (BOOL) miniaturizeNativeWindow;
+/** Relinquish native control focus before input enters the AppKit content. */
+- (void) focusAppKitContent;
 
 /*
 Called when the backend window is created or destroyed. When it's destroyed,

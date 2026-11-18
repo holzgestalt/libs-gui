@@ -74,6 +74,7 @@
 
 #import "GNUstepGUI/GSTheme.h"
 #import "GSBindingHelpers.h"
+#import "NSViewPrivate.h"
 
 #include <math.h>
 
@@ -167,6 +168,8 @@ typedef struct _tableViewFlags
 - (CGFloat) _rowHeightForRow: (NSInteger)rowIndex;
 - (CGFloat) _rowsHeight;
 - (CGFloat) _yOriginForRow: (NSInteger)rowIndex;
+- (void) _cacheRowOriginsThroughRow: (NSInteger)rowIndex;
+- (NSInteger) _rowForCachedY: (CGFloat)y;
 - (NSInteger) _rowAtPointUsingVariableHeights: (NSPoint)aPoint;
 - (CGFloat) _positionInRowAtPoint: (NSPoint)aPoint
                                row: (NSInteger)rowIndex;
@@ -175,6 +178,12 @@ typedef struct _tableViewFlags
 - (NSView*)  _renderedViewForPath: (NSIndexPath*)path;
 - (void) _setRenderedView: (NSView*)view forPath: (NSIndexPath*)path;
 - (void) _layoutViewBasedRows;
+- (void) _removeRowViewsOutsideRect: (NSRect)rect;
+- (void) _updateRowViewSelection;
+- (NSTableRowView *) _delegateRowViewForRow: (NSInteger)row;
+- (void) _didAddRowView: (NSTableRowView *)view forRow: (NSInteger)row;
+- (void) _didRemoveRowView: (NSTableRowView *)view forRow: (NSInteger)row;
+- (NSRect) _frameOfViewAtColumn: (NSInteger)column row: (NSInteger)row;
 - (void) _registerPrototypeViews: (NSArray *)prototypeViews;
 @end
 
@@ -2103,6 +2112,8 @@ static void computeNewSelection
 
 - (void) dealloc
 {
+  [_nativeTableView invalidate];
+  RELEASE(_nativeTableView);
   [self abortEditing];
 
   if (_autosaveTableColumns == YES)
@@ -2135,6 +2146,9 @@ static void computeNewSelection
   RELEASE (_registeredNibs);
   RELEASE (_registeredViews);
   RELEASE (_rowViews);
+  RELEASE (_reusableRowViews);
+  RELEASE (_reusableCellViews);
+  NSZoneFree (NSDefaultMallocZone (), _rowOrigins);
   TEST_RELEASE (_headerView);
   TEST_RELEASE (_cornerView);
 
@@ -2154,6 +2168,12 @@ static void computeNewSelection
 
 - (void) viewWillMoveToWindow:(NSWindow *) newWindow
 {
+  if ([self window] != newWindow)
+    {
+      [_nativeTableView invalidate];
+      DESTROY(_nativeTableView);
+      _nativeTableViewDeclined = NO;
+    }
   if ([self window] != nil && _viewBased)
     {
       [nc removeObserver: self
@@ -2464,6 +2484,10 @@ static void computeNewSelection
         {
           if ([subview isKindOfClass: [NSTableRowView class]])
             {
+              NSArray *keys = [_rowViews allKeysForObject: subview];
+              if ([keys count] != 0)
+                [self _didRemoveRowView: (NSTableRowView *)subview
+                                forRow: [[keys objectAtIndex: 0] integerValue]];
               [subview removeFromSuperview];
             }
         }
@@ -2471,6 +2495,8 @@ static void computeNewSelection
       [_renderedViewPaths removeAllObjects];
       [_pathsToViews removeAllObjects];
       [_rowViews removeAllObjects];
+      [_reusableRowViews removeAllObjects];
+      [_reusableCellViews removeAllObjects];
       RELEASE(subviews);
     }
 
@@ -2668,6 +2694,7 @@ static void computeNewSelection
 - (void) setRowHeight: (CGFloat)rowHeight
 {
   _rowHeight = rowHeight;
+  _cachedRowOrigins = 0;
   [self tile];
 }
 
@@ -2679,6 +2706,7 @@ static void computeNewSelection
 - (void) setBackgroundColor: (NSColor *)aColor
 {
   ASSIGN (_backgroundColor, aColor);
+  [self setNeedsDisplay: YES];
 }
 
 - (NSColor *) backgroundColor
@@ -2702,8 +2730,9 @@ static void computeNewSelection
 
 - (void)setSelectionHighlightStyle: (NSTableViewSelectionHighlightStyle)s
 {
-  // FIXME implement me really
   _selectionHighlightStyle = s;
+  [self _updateRowViewSelection];
+  [self setNeedsDisplay: YES];
   if (_selectionHighlightStyle == NSTableViewSelectionHighlightStyleSourceList)
     {
       // should also set draggingDestinationFeedbackStyle to NSTableViewDraggingDestinationFeedbackStyleSourceList
@@ -4672,7 +4701,10 @@ This method is deprecated, use -columnIndexesInRect:. */
 	{
 	  tmpRect.size.height = rowsHeight;
 	}
-      // TODO width?
+      /* A table paints its own background even when its clip view is
+         transparent. Cover the viewport after an autohiding scroller gives
+         space back, rather than leaving its old border visible. */
+      tmpRect.size.width = MAX(tmpRect.size.width, docRect.size.width);
     }
   [super setFrame: tmpRect];
   if (_viewBased)
@@ -4698,7 +4730,7 @@ This method is deprecated, use -columnIndexesInRect:. */
 	{
 	  tmpSize.height = rowsHeight;
 	}
-      // TODO width?
+      tmpSize.width = MAX(tmpSize.width, docRect.size.width);
     }
   [super setFrameSize: tmpSize];
   if (_viewBased)
@@ -4925,6 +4957,8 @@ This method is deprecated, use -columnIndexesInRect:. */
 {
   NSRect newFrame;
 
+  _nativeTableViewDeclined = NO;
+  _cachedRowOrigins = 0;
   _numberOfRows = [self _numRows];
 
   /* If we are selecting rows, we have to check that we have no
@@ -5019,6 +5053,7 @@ This method is deprecated, use -columnIndexesInRect:. */
 	  [self setNeedsDisplay: YES];
 	}
     }
+  [_nativeTableView reloadData];
 }
 
 - (void) tile
@@ -5118,16 +5153,8 @@ This method is deprecated, use -columnIndexesInRect:. */
   NSInteger startingColumn;
   NSInteger endingColumn;
   NSInteger columnIndex;
-  id dataSource = [self dataSource];
-
-  // If we have no data source, there is nothing to do...
-  if (dataSource == nil)
-    {
-      return;
-    }
-
-  // If the rowIndex is greater than the numberOfRows, done...
-  if (rowIndex >= numberOfRows)
+  // Bindings can supply rows without a data source object.
+  if (rowIndex < 0 || rowIndex >= numberOfRows)
     {
       return;
     }
@@ -5137,60 +5164,20 @@ This method is deprecated, use -columnIndexesInRect:. */
 		       inClipRect: clipRect];
 
   // Create and position the row view for this row
-  id rowView = [self rowViewAtRow: rowIndex
-		  makeIfNecessary: YES];
-  
+  NSTableRowView *rowView = [self rowViewAtRow: rowIndex makeIfNecessary: YES];
 
-  
   if (rowView != nil)
     {
-      NSRect cellFrame = [self frameOfCellAtColumn: 0
-					     row: rowIndex];
-      CGFloat x = 0.0;
-      CGFloat y = cellFrame.origin.y;
-      CGFloat w = [self frame].size.width;
-	CGFloat h = [self _rowHeightForRow: rowIndex];
-
-      NSRect rvFrame = NSMakeRect(x, y, w, h);
-      NSAutoresizingMaskOptions options = NSViewWidthSizable
-	| NSViewMaxYMargin;
-
-
-
-      // Add as subview if not already added
-      if ([[self subviews] containsObject: rowView] == NO)
-	{
-	  [self addSubview: rowView];
-	  [rowView setAutoresizingMask: options];
-
-	}
-      
-      // Always update the frame to ensure correct positioning
-      [rowView setFrame: rvFrame];
+      [rowView setFrame: [self rectOfRow: rowIndex]];
+      [rowView setSelected: [_selectedRows containsIndex: rowIndex]];
+      [rowView setSelectionHighlightStyle: _selectionHighlightStyle];
+      [rowView setEmphasized: [[self window] isKeyWindow]];
     }
 
   /* Create and add the cell views for each column in the row */
   for (columnIndex = startingColumn; columnIndex <= endingColumn; columnIndex++)
     {
-      NSView *view = [self viewAtColumn: columnIndex
-				    row: rowIndex
-			makeIfNecessary: YES];
-
-      // Create the view if needed...
-      if (view != nil && rowView != nil &&
-	  [[rowView subviews] containsObject: view] == NO)
-	{
-	  // Add the view to the row...
-	  [rowView addSubview: view];
-	}
-
-      if (view != nil)
-	{
-	  NSRect newRect = [self frameOfCellAtColumn: columnIndex
-						row: rowIndex];
-	  newRect.origin.y -= NSMinY ([rowView frame]);
-	  [view setFrame: newRect];
-	}
+      [self viewAtColumn: columnIndex row: rowIndex makeIfNecessary: YES];
     }
 }
 
@@ -5211,7 +5198,14 @@ This method is deprecated, use -columnIndexesInRect:. */
 
 - (void) noteHeightOfRowsWithIndexesChanged: (NSIndexSet*)indexes
 {
-  // FIXME
+  NSUInteger first = [indexes firstIndex];
+  if (first == NSNotFound || first >= (NSUInteger)_numberOfRows)
+    return;
+  if (first < (NSUInteger)_cachedRowOrigins)
+    _cachedRowOrigins = first;
+  [self tile];
+  [self _layoutViewBasedRows];
+  [self setNeedsDisplay: YES];
 }
 
 - (void) drawGridInClipRect: (NSRect)aRect
@@ -5222,6 +5216,11 @@ This method is deprecated, use -columnIndexesInRect:. */
 
 - (void) highlightSelectionInClipRect: (NSRect)clipRect
 {
+  if (_viewBased && !_selectingColumns)
+    {
+      [self _updateRowViewSelection];
+      return;
+    }
   [[GSTheme theme] highlightTableViewSelectionInClipRect: clipRect
 		   inView: self
 		   selectingColumns: _selectingColumns];
@@ -5236,6 +5235,43 @@ This method is deprecated, use -columnIndexesInRect:. */
 
 - (void) drawRect: (NSRect)aRect
 {
+  if (_viewBased && [NSGraphicsContext currentContextDrawingToScreen])
+    {
+      if (_nativeTableView == nil && !_nativeTableViewDeclined)
+        _nativeTableView = RETAIN([[GSTheme theme] nativeTableViewForTableView: self]);
+      if (_nativeTableView != nil && [(id<GSNativeTableView>)_nativeTableView update])
+        return;
+      [_nativeTableView invalidate];
+      DESTROY(_nativeTableView);
+      _nativeTableViewDeclined = YES;
+    }
+  NSRect rowArea = _bounds;
+  rowArea.size.height = _viewBased ? [self _rowsHeight] : 0;
+  if (_viewBased && _numberOfRows > 0 && _numberOfColumns > 0
+      && NSIntersectsRect(aRect, rowArea))
+    {
+      NSRect rowsToDraw = NSIntersectionRect(aRect, rowArea);
+      NSInteger first = [self rowAtPoint: NSMakePoint(NSMinX(rowArea), NSMinY(rowsToDraw))];
+      NSInteger last = [self rowAtPoint: NSMakePoint(NSMinX(rowArea), NSMaxY(rowsToDraw))];
+      NSInteger row;
+      if (first < 0) first = 0;
+      if (last < 0) last = _numberOfRows - 1;
+      /* Attach new cells with their final row-local frames before importing
+         their geometry into Auto Layout. Solve once before painting them. */
+      GSAutoLayoutEngine *engine = [self _layoutEngine];
+      [engine beginUpdates];
+      @try
+        {
+          [self _removeRowViewsOutsideRect: [self visibleRect]];
+          for (row = first; row <= last; row++)
+            [self _drawCellViewRow: row clipRect: aRect];
+        }
+      @finally
+        {
+          [engine endUpdates];
+        }
+      [[self window] layoutIfNeeded];
+    }
   [[GSTheme theme] drawTableViewRect: aRect
 		   inView: self];
 }
@@ -5251,6 +5287,11 @@ This method is deprecated, use -columnIndexesInRect:. */
 
 - (void) scrollRowToVisible: (NSInteger)rowIndex
 {
+  if (_nativeTableView != nil && [(id<GSNativeTableView>)_nativeTableView update])
+    {
+      [_nativeTableView scrollRowToVisible: rowIndex];
+      return;
+    }
   if (_super_view != nil)
     {
       NSRect rowRect = [self rectOfRow: rowIndex];
@@ -5485,6 +5526,7 @@ This method is deprecated, use -columnIndexesInRect:. */
   if (_delegate)
     [nc removeObserver: _delegate name: nil object: self];
   _delegate = anObject;
+  _cachedRowOrigins = 0;
 
 #define SET_DELEGATE_NOTIFICATION(notif_name) \
   if ([_delegate respondsToSelector: @selector(tableView##notif_name:)]) \
@@ -6581,20 +6623,7 @@ view to drag. */
 			return 0;
 		}
 
-	CGFloat currentY = 0.0;
-	NSInteger rowIndex;
-
-	for (rowIndex = 0; rowIndex < _numberOfRows; rowIndex++)
-		{
-			CGFloat height = [self _rowHeightForRow: rowIndex];
-			if (y < currentY + height)
-				{
-					return rowIndex;
-				}
-			currentY += height;
-		}
-
-	return _numberOfRows;
+	return [self _rowForCachedY: y];
 }
 
 - (void) _setDropOperationAndRow: (NSInteger)row
@@ -6799,12 +6828,14 @@ For a more detailed explanation, -setSortDescriptors:. */
  */
 - (void) _postSelectionIsChangingNotification
 {
+  [self _updateRowViewSelection];
   [nc postNotificationName: NSTableViewSelectionIsChangingNotification
       object: self];
 }
 
 - (void) _postSelectionDidChangeNotification
 {
+  [self _updateRowViewSelection];
   GSKeyValueBinding *theBinding;
 
   /* The table view's own selectionIndexes binding (established by
@@ -7113,6 +7144,41 @@ For a more detailed explanation, -setSortDescriptors:. */
 	return _rowHeight;
 }
 
+/* Cache prefix sums once per data/height change. Scrolling and painting then
+   look up row origins directly and find rows by binary search, rather than
+   calling the height delegate for every preceding row on every query. */
+- (void) _cacheRowOriginsThroughRow: (NSInteger)rowIndex
+{
+  NSInteger i;
+  rowIndex = MIN(MAX(rowIndex, 0), _numberOfRows);
+  if (_rowOriginsCapacity < _numberOfRows + 1)
+    {
+      _rowOriginsCapacity = _numberOfRows + 1;
+      _rowOrigins = NSZoneRealloc(NSDefaultMallocZone(), _rowOrigins,
+        sizeof(CGFloat) * _rowOriginsCapacity);
+    }
+  if (_cachedRowOrigins == 0)
+    _rowOrigins[0] = 0;
+  for (i = _cachedRowOrigins; i < rowIndex; i++)
+    _rowOrigins[i + 1] = _rowOrigins[i] + [self _rowHeightForRow: i];
+  _cachedRowOrigins = MAX(_cachedRowOrigins, rowIndex);
+}
+
+- (NSInteger) _rowForCachedY: (CGFloat)y
+{
+  NSInteger low = 0, high = _numberOfRows;
+  [self _cacheRowOriginsThroughRow: _numberOfRows];
+  while (low < high)
+    {
+      NSInteger middle = low + (high - low) / 2;
+      if (y < _rowOrigins[middle + 1])
+        high = middle;
+      else
+        low = middle + 1;
+    }
+  return low;
+}
+
 - (CGFloat) _rowsHeight
 {
 	if ([self _usesVariableRowHeights] == NO)
@@ -7125,15 +7191,8 @@ For a more detailed explanation, -setSortDescriptors:. */
 			return 0.0;
 		}
 
-	CGFloat totalHeight = 0.0;
-	NSInteger i;
-
-	for (i = 0; i < _numberOfRows; i++)
-		{
-			totalHeight += [self _rowHeightForRow: i];
-		}
-
-	return totalHeight;
+	[self _cacheRowOriginsThroughRow: _numberOfRows];
+	return _rowOrigins[_numberOfRows];
 }
 
 - (CGFloat) _yOriginForRow: (NSInteger)rowIndex
@@ -7148,15 +7207,9 @@ For a more detailed explanation, -setSortDescriptors:. */
 			return _bounds.origin.y + (_rowHeight * rowIndex);
 		}
 
-	CGFloat y = _bounds.origin.y;
-	NSInteger i;
-
-	for (i = 0; i < rowIndex && i < _numberOfRows; i++)
-		{
-			y += [self _rowHeightForRow: i];
-		}
-
-	return y;
+	rowIndex = MIN(rowIndex, _numberOfRows);
+	[self _cacheRowOriginsThroughRow: rowIndex];
+	return _bounds.origin.y + _rowOrigins[rowIndex];
 }
 
 - (NSInteger) _rowAtPointUsingVariableHeights: (NSPoint)aPoint
@@ -7195,20 +7248,8 @@ For a more detailed explanation, -setSortDescriptors:. */
 			return -1;
 		}
 
-	CGFloat currentY = 0.0;
-	NSInteger rowIndex;
-
-	for (rowIndex = 0; rowIndex < _numberOfRows; rowIndex++)
-		{
-			CGFloat height = [self _rowHeightForRow: rowIndex];
-			if (y < currentY + height)
-				{
-					return rowIndex;
-				}
-			currentY += height;
-		}
-
-	return -1;
+	NSInteger row = [self _rowForCachedY: y];
+	return row < _numberOfRows ? row : -1;
 }
 
 - (CGFloat) _positionInRowAtPoint: (NSPoint)aPoint
@@ -7275,8 +7316,13 @@ For a more detailed explanation, -setSortDescriptors:. */
 
 - (NSInteger) columnForView: (NSView*)view
 {
-  NSIndexPath *path = [_pathsToViews objectForKey: view];
-  return [path item];
+  while (view != nil && view != self)
+    {
+      NSIndexPath *path = [_pathsToViews objectForKey: view];
+      if (path != nil) return [path item];
+      view = [view superview];
+    }
+  return -1;
 }
 
 - (void) insertRowsAtIndexes: (NSIndexSet*)indexes
@@ -7291,17 +7337,32 @@ For a more detailed explanation, -setSortDescriptors:. */
 
 - (NSInteger) rowForView: (NSView*)view
 {
-  NSIndexPath *path = [_pathsToViews objectForKey: view];
-  return [path section];
+  while (view != nil && view != self)
+    {
+      NSIndexPath *path = [_pathsToViews objectForKey: view];
+      if (path != nil) return [path section];
+      NSArray *rows = [_rowViews allKeysForObject: view];
+      if ([rows count] != 0) return [[rows objectAtIndex: 0] integerValue];
+      view = [view superview];
+    }
+  return -1;
 }
 
 - (NSView *) makeViewWithIdentifier: (NSUserInterfaceItemIdentifier)identifier owner: (id)owner
 {
+  NSMutableArray *available = [_reusableCellViews objectForKey: identifier];
+  if ([available count] != 0)
+    {
+      NSView *reused = AUTORELEASE(RETAIN([available lastObject]));
+      [available removeLastObject];
+      [reused setHidden: NO];
+      return reused;
+    }
   NSView *view = [_registeredViews objectForKey: identifier];
 
   if (view != nil)
     {
-      view = [view copy];
+      view = AUTORELEASE([view copy]);
       [view awakeFromNib];
       [owner awakeFromNib];
     }
@@ -7347,7 +7408,7 @@ For a more detailed explanation, -setSortDescriptors:. */
   if ([protoCellViews count] > 0)
     {
       view = [protoCellViews objectAtIndex: 0];
-      view = [view copy]; // instantiate the prototype...
+      view = AUTORELEASE([view copy]); // instantiate the prototype...
     }
 
   return view;
@@ -7359,30 +7420,82 @@ For a more detailed explanation, -setSortDescriptors:. */
 
   if (_viewBased == YES)
     {
+      if (row < 0 || row >= _numberOfRows)
+        return nil;
       NSNumber *aRow = [NSNumber numberWithInteger: row];
 
       [self _initViewBasedSupport];
       rv = [_rowViews objectForKey: aRow];
       if (rv == nil && flag == YES)
 	{
-	  if ([_delegate respondsToSelector: @selector(tableView:rowViewForRow:)])
-	    {
-	      rv = [_delegate tableView: self rowViewForRow: row];
-	    }
+          rv = [self _delegateRowViewForRow: row];
 	  if (rv == nil)
 	    {
-	      rv = AUTORELEASE([[NSTableRowView alloc] init]);
+              if ([_reusableRowViews count] != 0)
+                {
+                  rv = AUTORELEASE(RETAIN([_reusableRowViews lastObject]));
+                  [_reusableRowViews removeLastObject];
+                }
+              else
+	        rv = AUTORELEASE([[NSTableRowView alloc] init]);
 	    }
 
 	  if (rv != nil)
 	    {
-	      [_rowViews setObject: rv
-			    forKey: aRow];
+              [rv setFrame: [self rectOfRow: row]];
+              [rv setHidden: NO];
+              [rv setAutoresizingMask: NSViewWidthSizable | NSViewMaxYMargin];
+              [rv setSelected: [_selectedRows containsIndex: row]];
+              [rv setSelectionHighlightStyle: _selectionHighlightStyle];
+              [rv setEmphasized: [[self window] isKeyWindow]];
+              [_rowViews setObject: rv forKey: aRow];
+              if ([rv superview] != self) [self addSubview: rv];
+              [self _didAddRowView: rv forRow: row];
 	    }
 	}
     }
 
   return rv;
+}
+
+- (NSTableRowView *) _delegateRowViewForRow: (NSInteger)row
+{
+  if ([_delegate respondsToSelector: @selector(tableView:rowViewForRow:)])
+    return [_delegate tableView: self rowViewForRow: row];
+  return nil;
+}
+
+- (void) _didAddRowView: (NSTableRowView *)view forRow: (NSInteger)row
+{
+  if ([_delegate respondsToSelector: @selector(tableView:didAddRowView:forRow:)])
+    [_delegate tableView: self didAddRowView: view forRow: row];
+}
+
+- (void) _didRemoveRowView: (NSTableRowView *)view forRow: (NSInteger)row
+{
+  if ([_delegate respondsToSelector: @selector(tableView:didRemoveRowView:forRow:)])
+    [_delegate tableView: self didRemoveRowView: view forRow: row];
+}
+
+- (NSRect) _frameOfViewAtColumn: (NSInteger)column row: (NSInteger)row
+{
+  return [self frameOfCellAtColumn: column row: row];
+}
+
+- (void) _updateRowViewSelection
+{
+  NSEnumerator *enumerator = [_rowViews keyEnumerator];
+  NSNumber *number;
+  while ((number = [enumerator nextObject]) != nil)
+    {
+      NSInteger row = [number integerValue];
+      NSTableRowView *view = [_rowViews objectForKey: number];
+      [view setSelected: [_selectedRows containsIndex: row]];
+      [view setPreviousRowSelected: row > 0 && [_selectedRows containsIndex: row - 1]];
+      [view setNextRowSelected: row + 1 < _numberOfRows && [_selectedRows containsIndex: row + 1]];
+      [view setSelectionHighlightStyle: _selectionHighlightStyle];
+      [view setEmphasized: [[self window] isKeyWindow]];
+    }
 }
 
 - (void) _layoutViewBasedRows
@@ -7414,10 +7527,7 @@ For a more detailed explanation, -setSortDescriptors:. */
 	  continue;
 	}
 
-      rowFrame = NSMakeRect (0.0,
-			     [self _yOriginForRow: row],
-			     [self frame].size.width,
-			     [self _rowHeightForRow: row]);
+      rowFrame = [self rectOfRow: row];
       [rowView setFrame: rowFrame];
 
       for (column = 0; column < _numberOfColumns; column++)
@@ -7428,8 +7538,7 @@ For a more detailed explanation, -setSortDescriptors:. */
 
 	  if (view != nil)
 	    {
-	      NSRect viewFrame = [self frameOfCellAtColumn: column
-						       row: row];
+	      NSRect viewFrame = [self _frameOfViewAtColumn: column row: row];
 
 	      viewFrame.origin.y -= NSMinY (rowFrame);
 	      [view setFrame: viewFrame];
@@ -7438,14 +7547,74 @@ For a more detailed explanation, -setSortDescriptors:. */
     }
 }
 
+- (void) _removeRowViewsOutsideRect: (NSRect)rect
+{
+  /* Reuse ordinary prototype rows in place so their constraints stay in the
+     window's solver. Custom/non-reusable rows leave the hierarchy normally. */
+  NSArray *rows = [_rowViews allKeys];
+  for (NSNumber *number in rows)
+    {
+      NSInteger row = [number integerValue];
+      NSTableRowView *view = [_rowViews objectForKey: number];
+      id responder = [[self window] firstResponder];
+      if (row == _editedRow || NSIntersectsRect([view frame], rect)
+          || ([responder isKindOfClass: [NSView class]]
+              && [(NSView *)responder isDescendantOf: view]))
+        continue;
+      [self _didRemoveRowView: view forRow: row];
+      BOOL reusable = [view class] == [NSTableRowView class];
+      for (NSInteger column = 0; column < _numberOfColumns; column++)
+        {
+          NSIndexPath *path = [NSIndexPath indexPathForItem: column inSection: row];
+          NSView *cell = [self _renderedViewForPath: path];
+          NSString *identifier = [cell identifier];
+          if (cell != nil && (identifier == nil
+              || ([_registeredViews objectForKey: identifier] == nil
+                  && [_registeredNibs objectForKey: identifier] == nil)))
+            reusable = NO;
+        }
+      for (NSInteger column = 0; column < _numberOfColumns; column++)
+        {
+          NSIndexPath *path = [NSIndexPath indexPathForItem: column inSection: row];
+          NSView *cell = [self _renderedViewForPath: path];
+          if (cell != nil)
+            {
+              [_pathsToViews removeObjectForKey: cell];
+              if (reusable)
+                {
+                  NSString *identifier = [cell identifier];
+                  NSMutableArray *available = [_reusableCellViews objectForKey: identifier];
+                  if (available == nil)
+                    {
+                      available = [NSMutableArray array];
+                      [_reusableCellViews setObject: available forKey: identifier];
+                    }
+                  [available addObject: cell];
+                  [cell setHidden: YES];
+                }
+            }
+          [_renderedViewPaths removeObjectForKey: path];
+        }
+      if (reusable)
+        {
+          [view setHidden: YES];
+          [_reusableRowViews addObject: view];
+        }
+      else
+        [view removeFromSuperview];
+      [_rowViews removeObjectForKey: number];
+    }
+}
+
 - (NSView *) viewAtColumn: (NSInteger)column row: (NSInteger)row makeIfNecessary: (BOOL)flag
 {
+  if (column < 0 || column >= _numberOfColumns || row < 0 || row >= _numberOfRows)
+    return nil;
   NSTableColumn *tb = [_tableColumns objectAtIndex: column];
   NSIndexPath *path = [NSIndexPath indexPathForItem: column
 					  inSection: row];
   NSView *view = [self _renderedViewForPath: path];
-  NSRect drawingRect = [self frameOfCellAtColumn: column
-					     row: row];
+  NSRect drawingRect = [self _frameOfViewAtColumn: column row: row];
 
   // If the view has been stored use it, if not
   // then grab it.
@@ -7478,11 +7647,14 @@ For a more detailed explanation, -setSortDescriptors:. */
       [self _setRenderedView: view forPath: path];
     }
 
-  if ([[view superview] isKindOfClass: [NSTableRowView class]])
+  if (view != nil)
     {
-      drawingRect.origin.y -= NSMinY ([[view superview] frame]);
+      NSTableRowView *rowView = [self rowViewAtRow: row makeIfNecessary: flag];
+      drawingRect.origin.y -= NSMinY([rowView frame]);
+      [view setFrame: drawingRect];
+      if (rowView != nil && [view superview] != rowView)
+        [rowView addSubview: view];
     }
-  [view setFrame: drawingRect];
 
   return view;
 }
@@ -7557,6 +7729,10 @@ For a more detailed explanation, -setSortDescriptors:. */
     {
       _rowViews = [[NSMutableDictionary alloc] init];
     }
+  if (_reusableRowViews == nil)
+    _reusableRowViews = [[NSMutableArray alloc] init];
+  if (_reusableCellViews == nil)
+    _reusableCellViews = [[NSMutableDictionary alloc] init];
 }
 
 @end /* implementation of NSTableView */
