@@ -269,6 +269,11 @@
 - (void) reloadData;
 - (void) scrollRowToVisible: (NSInteger)row;
 - (void) invalidate;
+@optional
+/* Native containers may retain inactive pages outside AppKit's view tree.
+ * Return YES when the peer can keep its widgets/model for this transition.
+ * Moving to another native window still requires recreating the peer. */
+- (BOOL) preservesPeerForWindow: (NSWindow *)window;
 @end
 
 APPKIT_EXPORT	NSString	*GSSwitch;

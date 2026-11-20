@@ -2173,8 +2173,12 @@ static void computeNewSelection
 {
   if ([self window] != newWindow)
     {
-      [_nativeTableView invalidate];
-      DESTROY(_nativeTableView);
+      if (![_nativeTableView respondsToSelector: @selector(preservesPeerForWindow:)]
+          || ![_nativeTableView preservesPeerForWindow: newWindow])
+        {
+          [_nativeTableView invalidate];
+          DESTROY(_nativeTableView);
+        }
       _nativeTableViewDeclined = NO;
     }
   if ([self window] != nil && _viewBased)
