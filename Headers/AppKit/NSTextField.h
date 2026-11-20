@@ -39,8 +39,15 @@
 @class NSColor;
 @class NSText;
 @class NSCursor;
+@class NSTextView;
+@class NSTextField;
 
 @protocol NSTextFieldDelegate <NSControlTextEditingDelegate>
+@optional
+- (NSArray *) textField: (NSTextField *)textField
+              textView: (NSTextView *)textView
+            candidates: (NSArray *)candidates
+      forSelectedRange: (NSRange)selectedRange;
 @end
 
 APPKIT_EXPORT_CLASS

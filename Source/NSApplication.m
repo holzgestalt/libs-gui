@@ -1254,6 +1254,7 @@ static BOOL _isAutolaunchChecked = NO;
 - (void) dealloc
 {
   DESTROY(_hidden);
+  DESTROY(_appearance);
   DESTROY(_inactive);
 
   /* The display server is notionally owned by the NSApplication singleton
@@ -3978,7 +3979,7 @@ struct _DelegateWrapper
 }
 
 - (void) setAppearance: (NSAppearance*) appearance {
-  ASSIGNCOPY(_appearance, appearance);
+  ASSIGN(_appearance, appearance);
 }
 
 - (NSAppearance*) effectiveAppearance {

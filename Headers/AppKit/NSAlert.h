@@ -116,6 +116,8 @@ APPKIT_EXPORT_CLASS
   id _delegate;
   NSAlertStyle _style;
   BOOL _shows_help;
+  BOOL _shows_suppression_button;
+  NSButton *_suppression_button;
   id _modalDelegate;
   SEL _didEndSelector;
   NSInteger _result;
@@ -231,6 +233,12 @@ APPKIT_EXPORT_CLASS
  *  Returns whether the alert displays a Help button.
  */
 - (BOOL) showsHelp;
+
+/** Whether to display a checkbox allowing the user to suppress this alert.
+ * The application is responsible for remembering and honoring its state. */
+- (BOOL) showsSuppressionButton;
+- (void) setShowsSuppressionButton: (BOOL)flag;
+- (NSButton *) suppressionButton;
 
 /**
  *  Returns the internal window used by the alert.

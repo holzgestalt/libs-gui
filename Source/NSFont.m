@@ -509,6 +509,28 @@ static void setNSFont(NSString *key, NSFont *font)
    size is used.</p><p>See Also: +setUserFixedPitchFont: +userFontOfSize: 
    +boldSystemFontOfSize: +systemFontOfSize: +fontWithName:size:</p>
  */
++ (NSFont*) monospacedSystemFontOfSize: (CGFloat)fontSize
+                              weight: (CGFloat)weight
+{
+  NSFont *base = [self userFixedPitchFontOfSize: fontSize];
+  const CGFloat weights[] = {-0.8, -0.6, -0.4, 0.0, 0.23, 0.3, 0.4, 0.56, 0.62};
+  const int managerWeights[] = {1, 2, 3, 5, 6, 7, 9, 12, 13};
+  NSUInteger closest = 0;
+  NSUInteger i;
+  NSFont *font;
+
+  for (i = 1; i < sizeof(weights) / sizeof(weights[0]); i++)
+    {
+      if (fabs(weight - weights[i]) < fabs(weight - weights[closest]))
+        closest = i;
+    }
+  font = [[NSFontManager sharedFontManager]
+    fontWithFamily: [base familyName]
+    traits: NSFixedPitchFontMask | (weight >= NSFontWeightSemibold ? NSBoldFontMask : 0)
+    weight: managerWeights[closest] size: [base pointSize]];
+  return font != nil && [font isFixedPitch] ? font : base;
+}
+
 + (NSFont*) userFixedPitchFontOfSize: (CGFloat)fontSize
 {
   return getNSFont(fontSize, RoleUserFixedPitchFont);

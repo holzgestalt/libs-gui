@@ -200,6 +200,7 @@ static GSAlertPanel	*criticalAlertPanel = nil;
   NSTextField	*titleField;
   NSTextField	*messageField;
   NSScrollView	*scroll;
+  NSButton *suppressionButton;
   NSInteger	result;
   BOOL          isGreen;  // we were unarchived and not resized.
 }
@@ -217,6 +218,7 @@ static GSAlertPanel	*criticalAlertPanel = nil;
 		 def: (NSString*)defaultButton
 		 alt: (NSString*)alternateButton
 	       other: (NSString*)otherButton;
+- (void) setSuppressionButton: (NSButton *)button;
 - (void) setButtons: (NSArray *)buttons;
 - (void) sizePanelToFit;
 - (void) buttonAction: (id)sender;
@@ -293,6 +295,7 @@ static const float ButtonMinWidth = 72.0;
   RELEASE(titleField);
   RELEASE(messageField);
   RELEASE(scroll);
+  RELEASE(suppressionButton);
   [super dealloc];
 }
 
@@ -518,6 +521,17 @@ setKeyEquivalent(NSButton *button)
   return self;
 }
 
+- (void) setSuppressionButton: (NSButton *)button
+{
+  [suppressionButton removeFromSuperview];
+  ASSIGN(suppressionButton, button);
+  if (button != nil)
+    {
+      [[self contentView] addSubview: button];
+    }
+  [self sizePanelToFit];
+}
+
 - (void) sizePanelToFit
 {
   NSRect	bounds;
@@ -528,6 +542,7 @@ setKeyEquivalent(NSButton *button)
   NSView	*content;
   NSButton	*buttons[3];
   float		position = 0.0;
+  CGFloat suppressionHeight = 0;
   int		numberOfButtons;
   int		i;
   BOOL		needsScroll;
@@ -608,6 +623,15 @@ setKeyEquivalent(NSButton *button)
 	  wsize.width = width;
 	}
       wsize.height += ButtonBottom + bsize.height;
+    }
+
+  if (suppressionButton != nil)
+    {
+      [suppressionButton sizeToFit];
+      suppressionHeight = NSHeight([suppressionButton frame]) + MessageVertMargin;
+      wsize.height += suppressionHeight;
+      wsize.width = MAX(wsize.width, NSWidth([suppressionButton frame])
+                         + 2 * MessageHorzMargin);
     }
 
   // Let's see the size of the messageField and how to place it.
@@ -695,6 +719,14 @@ setKeyEquivalent(NSButton *button)
 	}
     }
 
+  if (suppressionButton != nil)
+    {
+      NSRect rect = [suppressionButton frame];
+      rect.origin.x = MessageHorzMargin;
+      rect.origin.y = ButtonBottom + bsize.height + MessageVertMargin;
+      [suppressionButton setFrame: rect];
+    }
+
   // Finaly, place the message.
   if (useControl(messageField))
     {
@@ -716,6 +748,7 @@ setKeyEquivalent(NSButton *button)
 	    {
 	      srect.origin.y = bounds.origin.y + MessageVertMargin;
 	    }
+          srect.origin.y += suppressionHeight;
 	  srect.size.width = bounds.size.width - 2 * MessageHorzMargin;
 	  srect.size.height = bounds.origin.y + bounds.size.height
 	    + MessageTop - srect.origin.y;
@@ -752,7 +785,8 @@ setKeyEquivalent(NSButton *button)
 	   * than expected.
 	   */
 	  mrect.origin.x = (wsize.width - mrect.size.width)/2;
-	  vmargin = bounds.size.height + LineBottom-mrect.size.height;
+	  vmargin = bounds.size.height + LineBottom-mrect.size.height
+        - suppressionHeight;
 	  if (numberOfButtons > 0)
 	    {
 	      vmargin -= ButtonBottom + bsize.height;
@@ -763,6 +797,7 @@ setKeyEquivalent(NSButton *button)
 	    {
 	      mrect.origin.y += ButtonBottom + bsize.height;
 	    }
+          mrect.origin.y += suppressionHeight;
 	  [messageField setFrame: mrect];
 	}
     }
@@ -1946,6 +1981,7 @@ NSRunAlertPanelRelativeToWindow(NSString *title,
   RELEASE(_icon);
   RELEASE(_buttons);
   RELEASE(_help_anchor);
+  RELEASE(_suppression_button);
   RELEASE(_window);
   [super dealloc];
 }
@@ -2022,6 +2058,35 @@ NSRunAlertPanelRelativeToWindow(NSString *title,
   return _shows_help;
 }
 
+- (BOOL) showsSuppressionButton
+{
+  return _shows_suppression_button;
+}
+
+- (void) setShowsSuppressionButton: (BOOL)flag
+{
+  _shows_suppression_button = flag;
+  if (_window != nil)
+    {
+      [(GSAlertPanel *)_window setSuppressionButton:
+        flag ? [self suppressionButton] : nil];
+    }
+}
+
+- (NSButton *) suppressionButton
+{
+  if (_suppression_button == nil && _shows_suppression_button)
+    {
+      _suppression_button = [[NSButton alloc] initWithFrame: NSZeroRect];
+      [_suppression_button setButtonType: NSSwitchButton];
+      [_suppression_button setTitle: _(@"Do not show this message again")];
+      [_suppression_button setFont: [NSFont systemFontOfSize: 0]];
+      [_suppression_button setState: NSOffState];
+      [_suppression_button sizeToFit];
+    }
+  return _suppression_button;
+}
+
 - (void) setHelpAnchor: (NSString *)anchor
 {
   ASSIGN(_help_anchor, anchor);
@@ -2066,7 +2131,8 @@ NSRunAlertPanelRelativeToWindow(NSString *title,
       NSString *title;
 
       panel = [[GSAlertPanel alloc] init];
-      _window = panel;
+      ASSIGN(_window, panel);
+      RELEASE(panel);
 
       switch (_style)
         {
@@ -2090,6 +2156,9 @@ NSRunAlertPanelRelativeToWindow(NSString *title,
           [self addButtonWithTitle: @"OK"];
         }
       [panel setButtons: _buttons];
+      [panel setSuppressionButton: _shows_suppression_button
+        ? [self suppressionButton] : nil];
+      [panel recalculateKeyViewLoop];
     }
 }
 
@@ -2153,6 +2222,10 @@ NSRunAlertPanelRelativeToWindow(NSString *title,
 
 - (id) window
 {
+  if (_window == nil)
+    {
+      [self _setupPanel];
+    }
   return _window;
 }
 

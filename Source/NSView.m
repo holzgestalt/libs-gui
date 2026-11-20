@@ -903,6 +903,7 @@ GSSetDragTypes(NSView* obj, NSArray *types)
   TEST_RELEASE(_cursor_rects);
   TEST_RELEASE(_tracking_rects);
   TEST_RELEASE(_shadow);
+  TEST_RELEASE(_appearance);
   TEST_RELEASE(_layoutGuides);
   TEST_RELEASE(_constraints);
 
@@ -5600,7 +5601,8 @@ static NSView* findByTag(NSView *view, NSInteger aTag, NSUInteger *level)
 }
 
 - (void) setAppearance: (NSAppearance*) appearance {
-  ASSIGNCOPY(_appearance, appearance);
+  ASSIGN(_appearance, appearance);
+  [self setNeedsDisplay: YES];
 }
 
 - (NSAppearance*) effectiveAppearance {
@@ -5614,7 +5616,8 @@ static NSView* findByTag(NSView *view, NSInteger aTag, NSUInteger *level)
   }
   else
   {
-    return [NSAppearance currentAppearance];
+    return [self window] != nil ? [[self window] effectiveAppearance]
+      : [NSApp effectiveAppearance];
   }
 }
 

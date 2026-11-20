@@ -147,6 +147,7 @@ APPKIT_EXPORT_CLASS
 
 /** Returns whether the receiver can be collapsed. */
 - (BOOL) canCollapse;
+- (void) setCanCollapse: (BOOL)flag;
 
 /** Returns whether the receiver is currently collapsed. */
 - (BOOL) isCollapsed;

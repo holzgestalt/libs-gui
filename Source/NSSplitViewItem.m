@@ -147,6 +147,11 @@ const CGFloat NSSplitViewItemUnspecifiedDimension = -1.0;
   return _canCollapse;
 }
 
+- (void) setCanCollapse: (BOOL)flag
+{
+  _canCollapse = flag;
+}
+
 - (BOOL) isCollapsed
 {
   NSView *view = [_viewController view];
