@@ -41,6 +41,7 @@
 - (NSArray *)_writableTypesForClass:(Class)documentClass;
 - (NSString *)_autosaveDirectory: (BOOL)create;
 - (void)_autosaveDocuments: (NSTimer *)timer;
+- (NSDocument *)_documentWithAutosavedURL: (NSURL *)url;
 - (BOOL)_reopenAutosavedDocuments;
 - (void)_recordAutosavedDocument: (NSDocument *)document;
 @end

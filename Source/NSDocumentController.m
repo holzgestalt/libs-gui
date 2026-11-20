@@ -1689,6 +1689,25 @@ static NSString *processName = nil;
     }
 }
 
+- (NSDocument *) _documentWithAutosavedURL: (NSURL *)url
+{
+  NSEnumerator *e = [_documents objectEnumerator];
+  NSDocument *document;
+
+  if (url == nil)
+    {
+      return nil;
+    }
+  while ((document = [e nextObject]) != nil)
+    {
+      if ([[document autosavedContentsFileURL] isEqual: url])
+        {
+          return document;
+        }
+    }
+  return nil;
+}
+
 - (BOOL) _reopenAutosavedDocuments
 {
   BOOL didOpen = NO;
@@ -1724,6 +1743,12 @@ static NSString *processName = nil;
               NSURL *autosavedURL =
                   autosavedLoc ? [NSURL URLWithString: autosavedLoc] : nil;
 
+              /* Window restoration may have reopened it already. */
+              if ((url != nil && [self documentForURL: url] != nil)
+                  || [self _documentWithAutosavedURL: autosavedURL] != nil)
+                {
+                  continue;
+                }
               if (autosavedURL && [fm fileExistsAtPath: [autosavedURL path]])
                 {
                   NSError *err;

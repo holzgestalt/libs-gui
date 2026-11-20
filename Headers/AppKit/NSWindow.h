@@ -40,6 +40,7 @@
 #import <AppKit/NSGraphicsContext.h>
 #import <AppKit/NSResponder.h>
 #import <AppKit/NSAppearance.h>
+#import <AppKit/NSUserInterfaceItemIdentification.h>
 
 @class NSArray;
 @class NSData;
@@ -238,7 +239,7 @@ APPKIT_EXPORT NSSize NSTokenSize;
  * </p>
  */
 APPKIT_EXPORT_CLASS
-@interface NSWindow : NSResponder <NSCoding, NSAppearanceCustomization>
+@interface NSWindow : NSResponder <NSCoding, NSAppearanceCustomization, NSUserInterfaceItemIdentification>
 {
   NSRect        _frame;
   NSSize        _minimumSize;
@@ -274,6 +275,8 @@ PACKAGE_SCOPE
   NSString      *_windowTitle;
   NSString      *_subtitle;
   NSAppearance  *_appearance;
+  NSUserInterfaceItemIdentifier _identifier;
+  Class         _restorationClass;
 PACKAGE_SCOPE
   NSPoint       _lastPoint;
 @protected
@@ -333,12 +336,13 @@ PACKAGE_SCOPE
     unsigned is_movable_by_window_background: 1;
     unsigned allows_tooltips_when_inactive: 1;
 
-    // 5 used 27 available
+    // 6 used 26 available
     unsigned shows_toolbar_button: 1;
     unsigned autorecalculates_keyview_loop: 1;
     unsigned ignores_mouse_events: 1;
     unsigned preserves_content_during_live_resize: 1;
     unsigned shows_resize_indicator: 1;
+    unsigned is_restorable: 1;
   } _f;
 @protected 
   NSToolbar     *_toolbar;
@@ -993,6 +997,14 @@ willPositionSheet: (NSWindow *)sheet
 - (void) windowWillClose: (NSNotification*)aNotification;
 - (void) windowWillMiniaturize: (NSNotification*)aNotification;
 - (void) windowWillMove: (NSNotification*)aNotification;
+#if OS_API_VERSION(MAC_OS_X_VERSION_10_7, GS_API_LATEST)
+/** Called after the window encoded its restorable state, to add to it. */
+- (void) window: (NSWindow *)window
+willEncodeRestorableState: (NSCoder *)state;
+/** Called after the window restored its state at launch. */
+- (void) window: (NSWindow *)window
+didDecodeRestorableState: (NSCoder *)state;
+#endif
 @end
 #endif
 

@@ -289,6 +289,7 @@
 #import <AppKit/NSViewController.h>
 #import <AppKit/NSVisualEffectView.h>
 #import <AppKit/NSWindowController.h>
+#import <AppKit/NSWindowRestoration.h>
 #endif
 
 #import <AppKit/PSOperators.h>

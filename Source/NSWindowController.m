@@ -35,6 +35,7 @@
 #import <Foundation/NSString.h>
 #import <Foundation/NSMapTable.h>
 
+#import "AppKit/NSDocumentController.h"
 #import "AppKit/NSNib.h"
 #import "AppKit/NSNibLoading.h"
 #import "AppKit/NSPanel.h"
@@ -42,8 +43,21 @@
 #import "AppKit/NSStoryboardSegue.h"
 #import "AppKit/NSStoryboard.h"
 #import "AppKit/NSViewController.h"
+#import "AppKit/NSWindowRestoration.h"
 
 #import "NSDocumentFrameworkPrivate.h"
+
+/* Document windows are restored by reopening their document, which the
+   document controller does. */
+static void
+setDocumentRestorationClass(NSWindow *window, NSDocument *document)
+{
+  if (document != nil && window != nil && [window restorationClass] == Nil)
+    {
+      [window setRestorationClass:
+        [[NSDocumentController sharedDocumentController] class]];
+    }
+}
 
 @implementation NSWindowController
 
@@ -209,6 +223,7 @@
        */
       [_window setReleasedWhenClosed: YES];
     }
+  setDocumentRestorationClass(_window, _document);
 }
 
 - (id) document
@@ -388,6 +403,7 @@
         {
           [_window setReleasedWhenClosed: YES];
           [_window setDocumentEdited: [_document isDocumentEdited]];
+          setDocumentRestorationClass(_window, _document);
         }
 
       /* Make sure window sizes itself right */
