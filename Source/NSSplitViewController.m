@@ -170,7 +170,14 @@ const CGFloat NSSplitViewControllerAutomaticDimension = -FLT_MAX;
 
 - (BOOL) splitView: (NSSplitView *)splitView canCollapseSubview: (NSView *)subview
 {
-  return YES;
+  for (NSSplitViewItem *item in _splitViewItems)
+    {
+      if ([[item viewController] view] == subview)
+        {
+          return [item canCollapse];
+        }
+    }
+  return NO;
 }
 
 - (NSRect) splitView: (NSSplitView *)splitView effectiveRect: (NSRect)proposedEffectiveRect forDrawnRect: (NSRect)drawnRect
@@ -181,7 +188,7 @@ const CGFloat NSSplitViewControllerAutomaticDimension = -FLT_MAX;
 
 - (BOOL) splitView:(NSSplitView *)splitView shouldCollapseSubview: (NSView *)subview forDoubleClickOnDividerAtIndex: (NSInteger)dividerIndex
 {
-  return YES;
+  return [self splitView: splitView canCollapseSubview: subview];
 }
 
 - (BOOL) splitView: (NSSplitView *)splitView shouldHideDividerAtIndex: (NSInteger)dividerIndex

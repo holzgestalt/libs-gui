@@ -217,6 +217,10 @@ APPKIT_EXPORT_CLASS
  */
 + (NSFont*) userFixedPitchFontOfSize: (CGFloat)fontSize;
 
+/** Returns a fixed-pitch system font at the requested size and weight. */
++ (NSFont*) monospacedSystemFontOfSize: (CGFloat)fontSize
+                              weight: (CGFloat)weight;
+
 /**
  * Returns the user's preferred proportional font at the specified size.
  * This font reflects the user's personal preference for general text display

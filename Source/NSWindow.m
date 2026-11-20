@@ -964,6 +964,7 @@ many times.
   DESTROY(_miniaturizedImage);
   DESTROY(_windowTitle);
   DESTROY(_subtitle);
+  DESTROY(_appearance);
   DESTROY(_rectsBeingDrawn);
   DESTROY(_initialFirstResponder);
   DESTROY(_defaultButtonCell);
@@ -6157,9 +6158,44 @@ current key view.<br />
   return _attachedSheet;
 }
 
+- (NSAppearance *) appearance
+{
+  return _appearance;
+}
+
+- (void) setAppearance: (NSAppearance *)appearance
+{
+  ASSIGN(_appearance, appearance);
+  [_contentView setNeedsDisplay: YES];
+}
+
+- (NSAppearance *) effectiveAppearance
+{
+  return _appearance != nil ? _appearance : [NSApp effectiveAppearance];
+}
+
 - (NSWindow *) sheetParent
 {
-  return nil;
+  NSWindow *parent = [self parentWindow];
+  return [parent attachedSheet] == self ? parent : nil;
+}
+
+- (void) endSheet: (NSWindow *)sheet
+{
+  [self endSheet: sheet returnCode: NSModalResponseStop];
+}
+
+- (void) endSheet: (NSWindow *)sheet returnCode: (NSModalResponse)returnCode
+{
+  if ([self attachedSheet] == sheet && sheet != nil)
+    {
+      [NSApp endSheet: sheet returnCode: returnCode];
+      /* Ending a sheet from a timer must also wake the modal event wait. */
+      [NSApp postEvent: [NSEvent otherEventWithType: NSApplicationDefined
+        location: NSZeroPoint modifierFlags: 0 timestamp: 0
+        windowNumber: [sheet windowNumber] context: nil
+        subtype: 0 data1: 0 data2: 0] atStart: NO];
+    }
 }
 
 - (void)beginSheet:(NSWindow *)sheet

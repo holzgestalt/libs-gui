@@ -216,6 +216,8 @@ void initSystemColors(void)
 		     black, @"controlTextColor",
 		     darkGray, @"disabledControlTextColor",
 		     gray, @"gridColor",
+                     @"0.0 0.478 1.0", @"controlAccentColor",
+                     gray, @"separatorColor",
 		     lightGray, @"headerColor",
 		     black, @"headerTextColor",
 		     white, @"highlightColor",
@@ -908,6 +910,16 @@ systemColorWithName(NSString *name)
 + (NSColor*) disabledControlTextColor
 {
   return systemColorWithName(@"disabledControlTextColor");
+}
+
++ (NSColor*) controlAccentColor
+{
+  return systemColorWithName(@"controlAccentColor");
+}
+
++ (NSColor*) separatorColor
+{
+  return systemColorWithName(@"separatorColor");
 }
 
 + (NSColor*) gridColor

@@ -72,3 +72,4 @@ compile_commands.json
 .vscode
 *.tmp
 *.log
+.DS_Store

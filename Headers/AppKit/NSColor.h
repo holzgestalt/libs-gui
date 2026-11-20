@@ -704,6 +704,12 @@ APPKIT_EXPORT_CLASS
  */
 + (NSColor*) gridColor;
 
+/** The user-selected accent color for controls. */
++ (NSColor*) controlAccentColor;
+
+/** The color for separators between sections of content. */
++ (NSColor*) separatorColor;
+
 /**
  * Returns the color for header backgrounds.
  * Returns: An NSColor for header backgrounds

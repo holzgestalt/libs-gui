@@ -220,7 +220,7 @@ static id buttonCellClass = nil;
 */
 - (NSInteger) state
 {
-  return [_cell state];
+  return [(NSCell *)_cell state];
 }
 
 - (BOOL) allowsMixedState

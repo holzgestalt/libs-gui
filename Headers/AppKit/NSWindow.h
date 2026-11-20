@@ -39,6 +39,7 @@
 
 #import <AppKit/NSGraphicsContext.h>
 #import <AppKit/NSResponder.h>
+#import <AppKit/NSAppearance.h>
 
 @class NSArray;
 @class NSData;
@@ -237,7 +238,7 @@ APPKIT_EXPORT NSSize NSTokenSize;
  * </p>
  */
 APPKIT_EXPORT_CLASS
-@interface NSWindow : NSResponder <NSCoding>
+@interface NSWindow : NSResponder <NSCoding, NSAppearanceCustomization>
 {
   NSRect        _frame;
   NSSize        _minimumSize;
@@ -272,6 +273,7 @@ PACKAGE_SCOPE
   NSImage       *_miniaturizedImage;
   NSString      *_windowTitle;
   NSString      *_subtitle;
+  NSAppearance  *_appearance;
 PACKAGE_SCOPE
   NSPoint       _lastPoint;
 @protected
@@ -878,6 +880,8 @@ PACKAGE_SCOPE
 
 - (void)beginSheet:(NSWindow *)sheet
  completionHandler:(GSNSWindowDidEndSheetCallbackBlock)handler;
+- (void) endSheet: (NSWindow *)sheet;
+- (void) endSheet: (NSWindow *)sheet returnCode: (NSModalResponse)returnCode;
 #endif
 
 #if OS_API_VERSION(MAC_OS_X_VERSION_10_7, GS_API_LATEST)

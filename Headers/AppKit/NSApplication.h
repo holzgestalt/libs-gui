@@ -38,6 +38,7 @@
 #ifndef _GNUstep_H_NSApplication
 #define _GNUstep_H_NSApplication
 #import <AppKit/AppKitDefines.h>
+#import <AppKit/NSAppearance.h>
 
 #import <AppKit/NSResponder.h>
 #import <AppKit/NSUserInterfaceValidation.h>
@@ -204,7 +205,7 @@ APPKIT_EXPORT NSString	*NSModalPanelRunLoopMode;
 APPKIT_EXPORT NSString	*NSEventTrackingRunLoopMode;
 
 APPKIT_EXPORT_CLASS
-@interface NSApplication : NSResponder <NSCoding,NSUserInterfaceValidations>
+@interface NSApplication : NSResponder <NSCoding,NSUserInterfaceValidations, NSAppearanceCustomization>
 {
   NSGraphicsContext	*_default_context;
   NSEvent		*_current_event;

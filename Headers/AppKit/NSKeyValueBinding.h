@@ -39,6 +39,10 @@
 @class NSArray;
 @class NSDictionary;
 
+/** Names of bindings and keys in a binding options dictionary. */
+typedef NSString *NSBindingName;
+typedef NSString *NSBindingOption;
+
 
 @interface NSObject (NSKeyValueBindingCreation)
 

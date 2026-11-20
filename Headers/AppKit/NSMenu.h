@@ -727,6 +727,10 @@ APPKIT_EXPORT_CLASS
  * and disabling of menu items).
  */
 
+@protocol NSMenuItemValidation <NSObject>
+- (BOOL) validateMenuItem: (NSMenuItem *)menuItem;
+@end
+
 @protocol	NSMenuValidation
 /** <p>The receiver should return YES if the menuItem is valid ... and should
  *  be enabled in the menu, NO if it is invalid and the user should not be
