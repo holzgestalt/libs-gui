@@ -2476,7 +2476,9 @@ Also returns the child index relative to this parent. */
   rowIndex = [_items indexOfObjectIdenticalTo: item];
   rowIndex = (rowIndex == NSNotFound) ? 0 : rowIndex + 1;
   nextIndex = [_selectedRows indexGreaterThanOrEqualToIndex: rowIndex];
-  if (nextIndex != NSNotFound)
+  // The nil root is rebuilt by reloadData, rather than inserted before
+  // existing rows. Selection already refers to those rebuilt row indexes.
+  if (item != nil && nextIndex != NSNotFound)
     {
       if (numItems > 0)
 	{
