@@ -63,39 +63,42 @@ BOOL NSImageForceCaching = NO; /* use on missmatch */
 static NSDictionary		*nsmapping = nil;
 
 // OS_API_VERSION(MAC_OS_X_VERSION_10_5, GS_API_LATEST)
-NSString *const NSImageNameQuickLookTemplate        = @"NSQuickLookTemplate";
-NSString *const NSImageNameBluetooth                = @"NSBluetoothTemplate";
-NSString *const NSImageNameIChatTheater             = @"NSIChatTheaterTemplate";
-NSString *const NSImageNameSlideshow                = @"NSSlideshowTemplate";
-NSString *const NSImageNameAction                   = @"NSActionTemplate";
-NSString *const NSImageNameSmartBadge               = @"NSSmartBadgeTemplate";
-NSString *const NSImageNameIconView                 = @"NSIconViewTemplate";
-NSString *const NSImageNameListView                 = @"NSListViewTemplate";
-NSString *const NSImageNameColumnView               = @"NSColumnViewTemplate";
-NSString *const NSImageNameFlowView                 = @"NSFlowViewTemplate";
-NSString *const NSImageNamePath                     = @"NSPathTemplate";
-NSString *const NSImageNameInvalidDataFreestanding  = @"NSInvalidDataFreestandingTemplate";
-NSString *const NSImageNameLockLocked               = @"NSLockLockedTemplate";
-NSString *const NSImageNameLockUnlocked             = @"NSLockUnlockedTemplate";
-NSString *const NSImageNameGoRight                  = @"NSGoRightTemplate";
-NSString *const NSImageNameGoLeft                   = @"NSGoLeftTemplate";
-NSString *const NSImageNameRightFacingTriangle      = @"NSRightFacingTriangleTemplate";
-NSString *const NSImageNameLeftFacingTriangle       = @"NSLeftFacingTriangleTemplate";
-NSString *const NSImageNameAdd                      = @"NSAddTemplate";
-NSString *const NSImageNameRemove                   = @"NSRemoveTemplate";
-NSString *const NSImageNameRevealFreestanding       = @"NSRevealFreestandingTemplate";
-NSString *const NSImageNameFollowLinkFreestanding   = @"NSFollowLinkFreestandingTemplate";
-NSString *const NSImageNameEnterFullScreen          = @"NSEnterFullScreenTemplate";
-NSString *const NSImageNameExitFullScreen           = @"NSExitFullScreenTemplate";
-NSString *const NSImageNameStopProgress             = @"NSStopProgressTemplate";
-NSString *const NSImageNameStopProgressFreestanding = @"NSStopProgressFreestandingTemplate";
-NSString *const NSImageNameRefresh                  = @"NSRefreshTemplate";
-NSString *const NSImageNameRefreshFreestanding      = @"NSRefreshFreestandingTemplate";
-NSString *const NSImageNameBonjour                  = @"NSBonjour";
-NSString *const NSImageNameComputer                 = @"NSComputer";
-NSString *const NSImageNameFolderBurnable           = @"NSFolderBurnable";
-NSString *const NSImageNameFolderSmart              = @"NSFolderSmart";
-NSString *const NSImageNameNetwork                  = @"NSNetwork";
+NSString *const NSImageNameQuickLookTemplate                = @"NSQuickLookTemplate";
+NSString *const NSImageNameBluetoothTemplate                = @"NSBluetoothTemplate";
+NSString *const NSImageNameIChatTheaterTemplate             = @"NSIChatTheaterTemplate";
+NSString *const NSImageNameSlideshowTemplate                = @"NSSlideshowTemplate";
+NSString *const NSImageNameActionTemplate                   = @"NSActionTemplate";
+NSString *const NSImageNameSmartBadgeTemplate               = @"NSSmartBadgeTemplate";
+NSString *const NSImageNameIconViewTemplate                 = @"NSIconViewTemplate";
+NSString *const NSImageNameListViewTemplate                 = @"NSListViewTemplate";
+NSString *const NSImageNameColumnViewTemplate               = @"NSColumnViewTemplate";
+NSString *const NSImageNameFlowViewTemplate                 = @"NSFlowViewTemplate";
+NSString *const NSImageNamePathTemplate                     = @"NSPathTemplate";
+NSString *const NSImageNameInvalidDataFreestandingTemplate  = @"NSInvalidDataFreestandingTemplate";
+NSString *const NSImageNameLockLockedTemplate               = @"NSLockLockedTemplate";
+NSString *const NSImageNameLockUnlockedTemplate             = @"NSLockUnlockedTemplate";
+NSString *const NSImageNameGoRightTemplate                  = @"NSGoRightTemplate";
+NSString *const NSImageNameGoLeftTemplate                   = @"NSGoLeftTemplate";
+NSString *const NSImageNameRightFacingTriangleTemplate      = @"NSRightFacingTriangleTemplate";
+NSString *const NSImageNameLeftFacingTriangleTemplate       = @"NSLeftFacingTriangleTemplate";
+NSString *const NSImageNameAddTemplate                      = @"NSAddTemplate";
+NSString *const NSImageNameRemoveTemplate                   = @"NSRemoveTemplate";
+NSString *const NSImageNameRevealFreestandingTemplate       = @"NSRevealFreestandingTemplate";
+NSString *const NSImageNameFollowLinkFreestandingTemplate   = @"NSFollowLinkFreestandingTemplate";
+NSString *const NSImageNameEnterFullScreenTemplate          = @"NSEnterFullScreenTemplate";
+NSString *const NSImageNameExitFullScreenTemplate           = @"NSExitFullScreenTemplate";
+NSString *const NSImageNameStopProgressTemplate             = @"NSStopProgressTemplate";
+NSString *const NSImageNameStopProgressFreestandingTemplate = @"NSStopProgressFreestandingTemplate";
+NSString *const NSImageNameRefreshTemplate                  = @"NSRefreshTemplate";
+NSString *const NSImageNameRefreshFreestandingTemplate      = @"NSRefreshFreestandingTemplate";
+NSString *const NSImageNameBonjour                          = @"NSBonjour";
+NSString *const NSImageNameComputer                         = @"NSComputer";
+NSString *const NSImageNameFolderBurnable                   = @"NSFolderBurnable";
+NSString *const NSImageNameFolderSmart                      = @"NSFolderSmart";
+NSString *const NSImageNameNetwork                          = @"NSNetwork";
+
+// OS_API_VERSION(MAC_OS_X_VERSION_10_6, GS_API_LATEST)
+NSString *const NSImageNameFolder                           = @"NSFolder";
 
 @interface NSView (Private)
 - (void) _lockFocusInContext: (NSGraphicsContext *)ctxt inRect: (NSRect)rect;

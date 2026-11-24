@@ -30,6 +30,9 @@
 #import "AppKit/NSUserInterfaceItemIdentification.h"
 #import <AppKit/NSResponder.h>
 #import <AppKit/AppKitDefines.h>
+// The categories below need the classes' interfaces.
+#import <AppKit/NSApplication.h>
+#import <AppKit/NSDocument.h>
 
 #if OS_API_VERSION(MAC_OS_X_VERSION_10_7, GS_API_LATEST)
 
