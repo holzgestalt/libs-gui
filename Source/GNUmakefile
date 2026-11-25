@@ -307,6 +307,7 @@ NSViewController.m \
 NSVisualEffectView.m \
 NSWindow.m \
 NSWindowController.m \
+NSWindowRestoration.m \
 NSWorkspace.m \
 GSAnimator.m \
 GSAutocompleteWindow.m \

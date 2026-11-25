@@ -717,6 +717,17 @@ APPKIT_EXPORT_CLASS
  */
 - (void) applicationDidChangeScreenParameters: (NSNotification*)aNotification;
 #endif 
+
+#if OS_API_VERSION(MAC_OS_X_VERSION_10_7, GS_API_LATEST)
+/** Called after the application encoded its restorable state, which is saved
+ * with the windows to restore at the next launch. */
+- (void) application: (NSApplication *)app
+willEncodeRestorableState: (NSCoder *)coder;
+/** Called at launch with the state saved at the last quit, before the windows
+ * are restored. */
+- (void) application: (NSApplication *)app
+didDecodeRestorableState: (NSCoder *)coder;
+#endif
 @end
 #endif
 

@@ -91,6 +91,7 @@
 #import "GSBindingHelpers.h"
 #import "GSDockTileBadge.h"
 #import "GSGuiPrivate.h"
+#import "GSRestorableState.h"
 #import "GSToolTips.h"
 #import "GSIconManager.h"
 #import "GSAutoLayoutEngine.h"
@@ -965,6 +966,7 @@ many times.
   DESTROY(_windowTitle);
   DESTROY(_subtitle);
   DESTROY(_appearance);
+  DESTROY(_identifier);
   DESTROY(_rectsBeingDrawn);
   DESTROY(_initialFirstResponder);
   DESTROY(_defaultButtonCell);
@@ -1375,6 +1377,19 @@ many times.
 - (void) setRepresentedFilename: (NSString*)aString
 {
   ASSIGN(_representedFilename, aString);
+}
+
+- (NSUserInterfaceItemIdentifier) identifier
+{
+  return _identifier;
+}
+
+/** Sets the identifier of the window.  It names the window when it is
+ * restored at launch (see NSWindowRestoration). */
+- (void) setIdentifier: (NSUserInterfaceItemIdentifier)identifier
+{
+  ASSIGNCOPY(_identifier, identifier);
+  GSRestorableStateInvalidate();
 }
 
 - (NSString *) subtitle { return _subtitle ?: @""; }
@@ -2049,6 +2064,7 @@ titleWithRepresentedFilename(NSString *representedFilename)
     {
       [self _terminateBackendWindow];
     }
+  GSRestorableStateInvalidate();
 }
 
 - (void) resignKeyWindow
@@ -6401,6 +6417,7 @@ current key view.<br />
   _f.is_opaque = YES;
   _f.views_need_display = YES;
   _f.selectionDirection = NSDirectSelection;
+  _f.is_restorable = YES;
 }
 
 @end

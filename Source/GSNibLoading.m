@@ -288,6 +288,7 @@ static BOOL _isInInterfaceBuilder = NO;
   RELEASE(_windowClass);
   RELEASE(_view);
   RELEASE(_autosaveName);
+  RELEASE(_identifier);
   RELEASE(_realObject);
   [super dealloc];
 }
@@ -431,6 +432,11 @@ static BOOL _isInInterfaceBuilder = NO;
 	{
 	  _toolbar = [coder decodeObjectForKey: @"NSToolbar"];
 	}
+      if ([coder containsValueForKey: @"NSUserInterfaceItemIdentifier"])
+	{
+	  ASSIGN(_identifier,
+	    [coder decodeObjectForKey: @"NSUserInterfaceItemIdentifier"]);
+	}
 
       _baseWindowClass = [NSWindow class];
     }
@@ -464,6 +470,11 @@ static BOOL _isInInterfaceBuilder = NO;
       [aCoder encodeObject: _title forKey: @"NSWindowTitle"];
       [aCoder encodeObject: _autosaveName forKey: @"NSFrameAutosaveName"];
       [aCoder encodeObject: _toolbar forKey: @"NSToolbar"];
+      if (_identifier != nil)
+	{
+	  [aCoder encodeObject: _identifier
+			forKey: @"NSUserInterfaceItemIdentifier"];
+	}
     }
 }
 
@@ -540,6 +551,10 @@ static BOOL _isInInterfaceBuilder = NO;
 				       styleMask: [self windowStyle]]
 		   display: NO];
       [_realObject setFrameAutosaveName: _autosaveName];
+      if (_identifier != nil)
+	{
+	  [_realObject setIdentifier: _identifier];
+	}
     }
   return _realObject;
 }

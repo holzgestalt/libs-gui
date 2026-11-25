@@ -96,6 +96,7 @@ APPKIT_DECLARE NSString *NSAnimationTriggerOrderOut = @"NSAnimationTriggerOrderO
 APPKIT_DECLARE NSString *NSApplicationDidBecomeActiveNotification = @"NSApplicationDidBecomeActiveNotification";
 APPKIT_DECLARE NSString *NSApplicationDidChangeScreenParametersNotification = @"NSApplicationDidChangeScreenParametersNotification";
 APPKIT_DECLARE NSString *NSApplicationDidFinishLaunchingNotification = @"NSApplicationDidFinishLaunchingNotification";
+APPKIT_DECLARE NSString *NSApplicationDidFinishRestoringWindowsNotification = @"NSApplicationDidFinishRestoringWindowsNotification";
 APPKIT_DECLARE NSString *NSApplicationDidHideNotification = @"NSApplicationDidHideNotification";
 APPKIT_DECLARE NSString *NSApplicationDidResignActiveNotification = @"NSApplicationDidResignActiveNotification";
 APPKIT_DECLARE NSString *NSApplicationDidUnhideNotification = @"NSApplicationDidUnhideNotification";

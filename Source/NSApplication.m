@@ -88,6 +88,7 @@
 #import "GNUstepGUI/GSTheme.h"
 #import "GNUstepGUI/GSServicesManager.h"
 #import "GSGuiPrivate.h"
+#import "GSRestorableState.h"
 #import "GNUstepGUI/GSInfoPanel.h"
 #import "GNUstepGUI/GSVersion.h"
 #import "NSDocumentFrameworkPrivate.h"
@@ -1138,13 +1139,21 @@ static BOOL _isAutolaunchChecked = NO;
     }
 
   /*
+   * Reopen the windows that were open when the application last quit.
+   */
+  didAutoreopen = GSRestorableStateRestore();
+
+  /*
    * Instantiate the NSDocumentController if we are a doc-based app
    * and eventually reopen all autosaved documents
    */
   sdc = [NSDocumentController sharedDocumentController];
   if ([[sdc documentClassNames] count] > 0)
     {
-      didAutoreopen = [sdc _reopenAutosavedDocuments];
+      if ([sdc _reopenAutosavedDocuments])
+        {
+          didAutoreopen = YES;
+        }
     }
 
   /*
@@ -3650,6 +3659,10 @@ struct _DelegateWrapper
   NSDocumentController		*sdc;
   NSApplicationTerminateReply	termination;
 
+  /* Save the windows to restore at the next launch as they are now, before
+     closing documents or the delegate's handling of the quit closes them. */
+  GSRestorableStateBeginTermination();
+
   /* First ask the shared document controller to save any unsaved changes */
   sdc = [NSDocumentController sharedDocumentController];
   if ([[sdc documentClassNames] count] > 0)
@@ -3657,6 +3670,7 @@ struct _DelegateWrapper
       if ([sdc reviewUnsavedDocumentsWithAlertTitle: _(@"Quit")
 					cancellable: YES] == NO)
 	{
+	  GSRestorableStateCancelTermination();
 	  return;
 	}
     }
@@ -3681,6 +3695,10 @@ struct _DelegateWrapper
     {
       [self replyToApplicationShouldTerminate: YES];
     }
+  else if (termination == NSTerminateCancel)
+    {
+      GSRestorableStateCancelTermination();
+    }
   /*
      Don't need to do anything on NSTerminateLater, as long as user code
      follows the contract (to call replyTo... later).
@@ -3694,9 +3712,14 @@ struct _DelegateWrapper
  */
 - (void) replyToApplicationShouldTerminate: (BOOL)shouldTerminate
 {
+  if (!shouldTerminate)
+    {
+      GSRestorableStateCancelTermination();
+    }
   // Prevent cycles in terminate: call.
   if (shouldTerminate && _app_is_running)
     {
+      GSRestorableStateFinishTermination();
       [nc postNotificationName: NSApplicationWillTerminateNotification
 	  object: self];
       

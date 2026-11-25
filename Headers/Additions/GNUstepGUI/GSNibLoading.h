@@ -147,6 +147,7 @@ APPKIT_EXPORT_CLASS
   NSString            *_autosaveName;
   Class               _baseWindowClass;
   NSToolbar           *_toolbar;
+  NSString            *_identifier;
 }
 - (id) initWithWindow: (NSWindow *)window
 	    className: (NSString *)windowClass
