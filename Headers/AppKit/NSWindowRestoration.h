@@ -33,6 +33,8 @@
 // The categories below need the classes' interfaces.
 #import <AppKit/NSApplication.h>
 #import <AppKit/NSDocument.h>
+#import <AppKit/NSDocumentController.h>
+#import <AppKit/NSWindow.h>
 
 #if OS_API_VERSION(MAC_OS_X_VERSION_10_7, GS_API_LATEST)
 
