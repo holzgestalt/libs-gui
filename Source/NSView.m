@@ -5514,7 +5514,21 @@ static NSView* findByTag(NSView *view, NSInteger aTag, NSUInteger *level)
           {
             NSRect rect = [engine alignmentRectForView: subview];
             if ([subview translatesAutoresizingMaskIntoConstraints])
-              [subview setFrameSize: rect.size];
+              {
+                /* A frame-managed view's frame belongs to its superview (its
+                   springs, or a split or scroll view); the engine only imported
+                   it. Its solved size is applied only where its constraints
+                   changed that size: writing the imported size back would undo
+                   whatever resized the view since the import, as NSSplitView
+                   does with its panes. */
+                NSSize imported;
+                if (![engine importedFrameSize: &imported forView: subview]
+                    || fabs(imported.width - rect.size.width) > 0.5
+                    || fabs(imported.height - rect.size.height) > 0.5)
+                  {
+                    [subview setFrameSize: rect.size];
+                  }
+              }
             else
               [subview setFrame: rect];
           }

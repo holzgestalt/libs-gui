@@ -76,6 +76,9 @@ extern BOOL GSAutoLayoutEngineExists;
 
 - (NSRect) alignmentRectForView: (NSView *)view;
 - (BOOL) hasLayoutForView: (NSView *)view;
+/* The size last imported from a frame-managed view (one that translates its
+   autoresizing mask), or NO if none was imported. */
+- (BOOL) importedFrameSize: (NSSize *)size forView: (NSView *)view;
 - (void) prepareForLayout;
 - (void) beginUpdates;
 - (void) endUpdates;

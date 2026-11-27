@@ -1377,6 +1377,16 @@ static const CGFloat GSLayoutFrameSizeStrength = 1.0e9;
   return [self hasConstraintsForView: view];
 }
 
+- (BOOL) importedFrameSize: (NSSize *)size forView: (NSView *)view
+{
+  NSDictionary *frameInfo = [_frameConstraintsByView objectForKey: view];
+
+  if (frameInfo == nil)
+    return NO;
+  *size = [[frameInfo objectForKey: @"rect"] rectValue].size;
+  return YES;
+}
+
 - (void) addSupportingSolverConstraint: (GSCSConstraint *)supportingConstraint
                    forSolverConstraint: (GSCSConstraint *)constraint
 {
