@@ -2713,9 +2713,13 @@ titleWithRepresentedFilename(NSString *representedFilename)
       return;
     }
 
+  NSTimeInterval start = [NSDate timeIntervalSinceReferenceDate];
+
   [_wv display];
   [self discardCachedImage];
   _f.views_need_display = NO;
+  NSDebugLLog(@"GSLayoutTiming", @"display drew in %.1f ms",
+    ([NSDate timeIntervalSinceReferenceDate] - start) * 1000);
 }
 
 - (void) displayIfNeeded
@@ -2730,9 +2734,13 @@ titleWithRepresentedFilename(NSString *representedFilename)
 
   if (_f.views_need_display)
     {
+      NSTimeInterval start = [NSDate timeIntervalSinceReferenceDate];
+
       [_wv displayIfNeeded];
       [self discardCachedImage];
       _f.views_need_display = NO;
+      NSDebugLLog(@"GSLayoutTiming", @"displayIfNeeded drew in %.1f ms",
+        ([NSDate timeIntervalSinceReferenceDate] - start) * 1000);
     }
 }
 
