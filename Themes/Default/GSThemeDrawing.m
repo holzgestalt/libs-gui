@@ -662,6 +662,52 @@ NSRect track=NSInsetRect(frame,3,3); CGFloat d=MAX(0,NSHeight(track)-4);
 
 // NSSegmentedControl drawing methods
 
+/* A segment's part of the control's track: only the ends of the row are
+ * rounded, so the segments join into one control. */
+static NSBezierPath *
+SegmentTrack(NSRect r, CGFloat radius, BOOL roundedLeft, BOOL roundedRight)
+{
+  NSBezierPath *p = [NSBezierPath bezierPath];
+  CGFloat left;
+  CGFloat right;
+
+  r = NSInsetRect(r, 0, 0.5);
+  radius = MIN(radius, NSHeight(r) / 2);
+  left = roundedLeft ? MIN(radius, NSWidth(r) / 2) : 0;
+  right = roundedRight ? MIN(radius, NSWidth(r) / 2) : 0;
+  [p moveToPoint: NSMakePoint(NSMinX(r) + left, NSMinY(r))];
+  [p lineToPoint: NSMakePoint(NSMaxX(r) - right, NSMinY(r))];
+  if (right > 0)
+    {
+      [p appendBezierPathWithArcFromPoint: NSMakePoint(NSMaxX(r), NSMinY(r))
+                                  toPoint: NSMakePoint(NSMaxX(r), NSMinY(r) + right)
+                                   radius: right];
+    }
+  [p lineToPoint: NSMakePoint(NSMaxX(r), NSMaxY(r) - right)];
+  if (right > 0)
+    {
+      [p appendBezierPathWithArcFromPoint: NSMakePoint(NSMaxX(r), NSMaxY(r))
+                                  toPoint: NSMakePoint(NSMaxX(r) - right, NSMaxY(r))
+                                   radius: right];
+    }
+  [p lineToPoint: NSMakePoint(NSMinX(r) + left, NSMaxY(r))];
+  if (left > 0)
+    {
+      [p appendBezierPathWithArcFromPoint: NSMakePoint(NSMinX(r), NSMaxY(r))
+                                  toPoint: NSMakePoint(NSMinX(r), NSMaxY(r) - left)
+                                   radius: left];
+    }
+  [p lineToPoint: NSMakePoint(NSMinX(r), NSMinY(r) + left)];
+  if (left > 0)
+    {
+      [p appendBezierPathWithArcFromPoint: NSMakePoint(NSMinX(r), NSMinY(r))
+                                  toPoint: NSMakePoint(NSMinX(r) + left, NSMinY(r))
+                                   radius: left];
+    }
+  [p closePath];
+  return p;
+}
+
 - (void) drawSegmentedControlSegment: (NSCell *)cell
                            withFrame: (NSRect)cellFrame
                               inView: (NSView *)controlView
@@ -671,7 +717,8 @@ NSRect track=NSInsetRect(frame,3,3); CGFloat d=MAX(0,NSHeight(track)-4);
                         roundedRight: (BOOL)roundedRight
 {
 BOOL selected=state==GSThemeSelectedState || state==GSThemeSelectedFirstResponderState;
-  MacRound(cellFrame,6,MacGray(0.89),nil);
+  [MacGray(0.89) set];
+  [SegmentTrack(cellFrame, 6, roundedLeft, roundedRight) fill];
   if (selected || MacPressed(state)) MacRound(NSInsetRect(cellFrame,2,2),5,MacGray(selected ? 1 : 0.95),MacGray(0.82));
 }
 
@@ -692,7 +739,11 @@ return MacGray(0.8);
 
 - (CGFloat) menuBorderRadius
 {
+#ifdef _WIN32
+return 0;
+#else
 return 10;
+#endif
 }
 
 - (NSColor *) menuBarBackgroundColor
@@ -726,7 +777,13 @@ return MacGray(0.84);
 {
 [NSGraphicsContext saveGraphicsState]; NSRectClip(dirtyRect);
   if (horizontal) { [[self menuBarBackgroundColor] set]; NSRectFill(bounds); }
+#ifdef _WIN32
+  /* Square: Windows' backend has no transparent windows, so the corners
+   * outside rounded ones would be black. */
+  else MacRound(bounds,0,[self menuBackgroundColor],[self menuBorderColor]);
+#else
   else MacRound(bounds,10,[self menuBackgroundColor],[self menuBorderColor]);
+#endif
   [NSGraphicsContext restoreGraphicsState];
 }
 
