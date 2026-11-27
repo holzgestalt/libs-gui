@@ -87,6 +87,7 @@ NSString *const NSImageNameRevealFreestanding       = @"NSRevealFreestandingTemp
 NSString *const NSImageNameFollowLinkFreestanding   = @"NSFollowLinkFreestandingTemplate";
 NSString *const NSImageNameEnterFullScreen          = @"NSEnterFullScreenTemplate";
 NSString *const NSImageNameExitFullScreen           = @"NSExitFullScreenTemplate";
+NSString *const NSImageNameStopProgressTemplate     = @"NSStopProgressTemplate";
 NSString *const NSImageNameStopProgress             = @"NSStopProgressTemplate";
 NSString *const NSImageNameStopProgressFreestanding = @"NSStopProgressFreestandingTemplate";
 NSString *const NSImageNameRefresh                  = @"NSRefreshTemplate";
