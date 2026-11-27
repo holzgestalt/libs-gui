@@ -35,6 +35,13 @@
    can test it before doing any further work. */
 extern BOOL GSAutoLayoutEngineExists;
 
+/* Counts changes to anything a layout pass reads: view frames and bounds,
+   the view tree, hidden views, constraints, priorities and intrinsic content
+   sizes.  -[NSWindow layoutIfNeeded] skips the pass when the count is the one
+   the window's last pass started from. */
+extern NSUInteger GSLayoutGeneration;
+#define GSInvalidateLayout() (GSLayoutGeneration++)
+
 @interface GSAutoLayoutEngine : NSObject
 {
    GSCassowarySolver *_solver;
@@ -62,6 +69,8 @@ extern BOOL GSAutoLayoutEngineExists;
    NSMutableArray *_batchedSolverConstraints;
    int _batchDepth;
    NSUInteger _updateDepth;
+   NSUInteger _layoutGeneration;
+   BOOL _hasLayoutGeneration;
 }
 
 - (instancetype) initWithSolver: (GSCassowarySolver*)solver;
@@ -89,6 +98,11 @@ extern BOOL GSAutoLayoutEngineExists;
 - (void) pinContentView: (NSView *)contentView;
 
 - (BOOL) updateContentViewSize;
+
+/* YES once a pass has run since the last change to the layout's inputs. */
+- (BOOL) isLayoutCurrent;
+/* Records the GSLayoutGeneration a finished pass started from. */
+- (void) setLayoutGeneration: (NSUInteger)generation;
 
 @end
 

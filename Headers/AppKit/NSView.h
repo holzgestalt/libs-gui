@@ -709,6 +709,8 @@ PACKAGE_SCOPE
 - (BOOL) intrinsicContentSize;
 #endif
 
+- (void) invalidateIntrinsicContentSize;
+
 #if GS_HAS_DECLARED_PROPERTIES
 @property (readonly) CGFloat baselineOffsetFromBottom;
 #else

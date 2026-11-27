@@ -506,6 +506,7 @@ GSSetDragTypes(NSView* obj, NSArray *types)
   GSAutoLayoutEngine *oldLayoutEngine = [_window _layoutEngine];
 
   [self viewWillMoveToWindow: newWindow];
+  GSInvalidateLayout();
   if (_coordinates_valid)
     {
       (*invalidateImp)(self, invalidateSel);
@@ -765,6 +766,7 @@ GSSetDragTypes(NSView* obj, NSArray *types)
 
   _alphaValue = 1.0;
 
+  GSInvalidateLayout();
   _needsUpdateConstraints = YES;
   _translatesAutoresizingMaskIntoConstraints = YES;
 
@@ -977,6 +979,7 @@ GSSetDragTypes(NSView* obj, NSArray *types)
   [aView setNeedsDisplay: YES];
   [aView _viewDidMoveToWindow];
   [aView viewDidMoveToSuperview];
+  GSInvalidateLayout();
   [self didAddSubview: aView];
   RELEASE(aView);
 }
@@ -1099,6 +1102,7 @@ GSSetDragTypes(NSView* obj, NSArray *types)
 	  break;
 	}
     }
+  GSInvalidateLayout();
   [self willRemoveSubview: aView];
   /* Constraints owned by ancestors cannot outlive the subtree they refer
      to. Constraints owned inside the subtree remain available for re-use. */
@@ -1164,6 +1168,7 @@ GSSetDragTypes(NSView* obj, NSArray *types)
       [newView setNeedsDisplay: YES];
       [newView _viewDidMoveToWindow];
       [newView viewDidMoveToSuperview];
+      GSInvalidateLayout();
       [self didAddSubview: newView];
       RELEASE(newView);
     }
@@ -1202,6 +1207,7 @@ GSSetDragTypes(NSView* obj, NSArray *types)
 	  [newView setNeedsDisplay: YES];
 	  [newView _viewDidMoveToWindow];
 	  [newView viewDidMoveToSuperview];
+	  GSInvalidateLayout();
 	  [self didAddSubview: newView];
 	  RELEASE(newView);
 	}
@@ -1328,6 +1334,7 @@ static NSSize _computeScale(NSSize fs, NSSize bs)
 
 - (void) _setFrameAndClearAutoresizingError: (NSRect)frameRect
 {
+  GSInvalidateLayout();
   _frame = frameRect;
   _autoresizingFrameError = NSZeroRect;
 }
@@ -1381,6 +1388,7 @@ static NSSize _computeScale(NSSize fs, NSSize bs)
             }
         }
 
+      GSInvalidateLayout();
       if (_coordinates_valid)
         {
           (*invalidateImp)(self, invalidateSel);
@@ -1406,6 +1414,7 @@ static NSSize _computeScale(NSSize fs, NSSize bs)
       NSRect newFrame = _frame;
       newFrame.origin = newOrigin;
 
+      GSInvalidateLayout();
       if (_coordinates_valid)
         {
           (*invalidateImp)(self, invalidateSel);
@@ -1479,6 +1488,7 @@ static NSSize _computeScale(NSSize fs, NSSize bs)
 	  [self _setFrameAndClearAutoresizingError: newFrame];
         }
 
+      GSInvalidateLayout();
       if (_coordinates_valid)
         {
           (*invalidateImp)(self, invalidateSel);
@@ -1513,6 +1523,7 @@ static NSSize _computeScale(NSSize fs, NSSize bs)
       [_frameMatrix rotateByDegrees: angle - oldAngle];
       _is_rotated_from_base = _is_rotated_or_scaled_from_base = YES;
 
+      GSInvalidateLayout();
       if (_coordinates_valid)
         {
           (*invalidateImp)(self, invalidateSel);
@@ -1615,6 +1626,7 @@ static NSSize _computeScale(NSSize fs, NSSize bs)
           RELEASE(matrix);
        }
 
+      GSInvalidateLayout();
       if (_coordinates_valid)
         {
           (*invalidateImp)(self, invalidateSel);
@@ -1696,6 +1708,7 @@ static NSSize _computeScale(NSSize fs, NSSize bs)
       RELEASE(matrix);               
     }
 
+  GSInvalidateLayout();
   if (_coordinates_valid)
     {
       (*invalidateImp)(self, invalidateSel);
@@ -1729,6 +1742,7 @@ static NSSize _computeScale(NSSize fs, NSSize bs)
       _bounds.origin.x -= point.x;
       _bounds.origin.y -= point.y;
 
+      GSInvalidateLayout();
       if (_coordinates_valid)
         {
           (*invalidateImp)(self, invalidateSel);
@@ -1770,6 +1784,7 @@ static NSSize _computeScale(NSSize fs, NSSize bs)
 
       _is_rotated_or_scaled_from_base = YES;
 
+      GSInvalidateLayout();
       if (_coordinates_valid)
         {
           (*invalidateImp)(self, invalidateSel);
@@ -1804,6 +1819,7 @@ static NSSize _computeScale(NSSize fs, NSSize bs)
 
       _is_rotated_from_base = _is_rotated_or_scaled_from_base = YES;
 
+      GSInvalidateLayout();
       if (_coordinates_valid)
         {
           (*invalidateImp)(self, invalidateSel);
@@ -3242,6 +3258,7 @@ in the main thread.
 
   if (_is_hidden == flag)
       return;
+  GSInvalidateLayout();
 
   /* The view and its unhidden descendants only change effective visibility
      when no ancestor is already hidden. */
@@ -5080,6 +5097,7 @@ static NSView* findByTag(NSView *view, NSInteger aTag, NSUInteger *level)
 	  [sub setNeedsDisplay: YES];
 	  [sub _viewDidMoveToWindow];
 	  [sub viewDidMoveToSuperview];
+	  GSInvalidateLayout();
 	  [self didAddSubview: sub];
 	}
 
@@ -5151,6 +5169,7 @@ static NSView* findByTag(NSView *view, NSInteger aTag, NSUInteger *level)
 	  [sub setNeedsDisplay: YES];
 	  [sub _viewDidMoveToWindow];
 	  [sub viewDidMoveToSuperview];
+	  GSInvalidateLayout();
 	  [self didAddSubview: sub];
 	}
       RELEASE(subs);
@@ -5564,6 +5583,7 @@ static NSView* findByTag(NSView *view, NSInteger aTag, NSUInteger *level)
     {
       return;
     }
+  GSInvalidateLayout();
   _needsLayout = needsLayout;
 }
 
@@ -5590,6 +5610,7 @@ static NSView* findByTag(NSView *view, NSInteger aTag, NSUInteger *level)
 
 - (void) setTranslatesAutoresizingMaskIntoConstraints: (BOOL)translate
 {
+  GSInvalidateLayout();
   _translatesAutoresizingMaskIntoConstraints = translate;
 }
 
@@ -5605,12 +5626,27 @@ static NSView* findByTag(NSView *view, NSInteger aTag, NSUInteger *level)
 
 - (void) setContentCompressionResistancePriority: (NSLayoutPriority)priority
 {
+  GSInvalidateLayout();
   _contentCompressionResistancePriority = priority;
 }
 
 - (NSSize) intrinsicContentSize
 {
   return NSMakeSize(NSViewNoIntrinsicMetric, NSViewNoIntrinsicMetric);
+}
+
+/** Tells the layout that -intrinsicContentSize may return a new size, so the
+    window lays out again before it next draws.  Controls call this when their
+    cell changes.  The next pass reads the intrinsic size of every constraint
+    view again; when that moves the view, its superview is marked as needing
+    layout (-_layoutEngineDidChangeAlignmentRect), and so on up. */
+- (void) invalidateIntrinsicContentSize
+{
+  GSInvalidateLayout();
+  if (_window != nil)
+    {
+      [self setNeedsDisplay: YES];
+    }
 }
 
 - (CGFloat) baselineOffsetFromBottom
@@ -5740,7 +5776,9 @@ static NSView* findByTag(NSView *view, NSInteger aTag, NSUInteger *level)
     }
   if ([engine updateContentViewSize])
     {
-      [self _layoutViewAndSubViews];
+      /* During a pass (one that resizes the window) this returns at once,
+         and that pass runs again. */
+      [window layoutIfNeeded];
     }
 }
 
@@ -5798,6 +5836,7 @@ static NSView* findByTag(NSView *view, NSInteger aTag, NSUInteger *level)
 }
 
 - (void) setContentCompressionResistancePriority: (NSLayoutPriority)priority forOrientation: (NSLayoutConstraintOrientation)orientation {
+    GSInvalidateLayout();
     if (orientation == NSLayoutConstraintOrientationHorizontal) {
       _compressionPriorities.horizontal = priority;
     } else {
@@ -5815,6 +5854,7 @@ static NSView* findByTag(NSView *view, NSInteger aTag, NSUInteger *level)
 
 - (void) setContentHuggingPriority: (NSLayoutPriority)priority forOrientation: (NSLayoutConstraintOrientation)orientation
 {
+    GSInvalidateLayout();
     if (orientation == NSLayoutConstraintOrientationHorizontal) {
       _huggingPriorities.horizontal = priority;
     } else {
@@ -5854,6 +5894,7 @@ static NSView* findByTag(NSView *view, NSInteger aTag, NSUInteger *level)
         }
     }
   END_FOR_IN(constraints);
+  GSInvalidateLayout();
   if ([self window] != nil && [constraints count] != 0)
     [[self _getOrCreateLayoutEngine] addConstraints: constraints];
 }
@@ -5873,6 +5914,7 @@ static NSView* findByTag(NSView *view, NSInteger aTag, NSUInteger *level)
         [removed addObject: constraint];
     }
   END_FOR_IN(constraints);
+  GSInvalidateLayout();
   [[self _layoutEngine] removeConstraints: removed];
   FOR_IN(NSLayoutConstraint *, constraint, removed)
     [_constraints removeObjectIdenticalTo: constraint];
@@ -6036,6 +6078,7 @@ static NSView* findByTag(NSView *view, NSInteger aTag, NSUInteger *level)
   [sv setNeedsDisplay: YES];
   [sv _viewDidMoveToWindow];
   [sv viewDidMoveToSuperview];
+  GSInvalidateLayout();
   [self didAddSubview: sv];
 }
 

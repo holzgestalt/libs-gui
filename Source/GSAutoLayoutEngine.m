@@ -229,6 +229,7 @@ typedef NSInteger GSLayoutViewAttribute;
 @end
 
 BOOL GSAutoLayoutEngineExists = NO;
+NSUInteger GSLayoutGeneration = 0;
 
 /* Imported frame sizes dominate ordinary optional constraints, while still
    allowing required content minimums to win. This is an internal solver
@@ -1555,6 +1556,17 @@ static const CGFloat GSLayoutFrameSizeStrength = 1.0e9;
       changed = YES;
     }
   return changed;
+}
+
+- (BOOL) isLayoutCurrent
+{
+  return _hasLayoutGeneration && _layoutGeneration == GSLayoutGeneration;
+}
+
+- (void) setLayoutGeneration: (NSUInteger)generation
+{
+  _layoutGeneration = generation;
+  _hasLayoutGeneration = YES;
 }
 
 /* The solver uses one top-down coordinate system for the entire window.

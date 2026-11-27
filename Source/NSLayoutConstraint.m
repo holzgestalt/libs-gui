@@ -466,6 +466,10 @@ static NSMapTable *installedContainers = nil;
 
 - (void) setConstant: (CGFloat)constant
 {
+  if (_constant != constant)
+    {
+      GSInvalidateLayout();
+    }
   _constant = constant;
 }
 
@@ -506,6 +510,10 @@ static NSMapTable *installedContainers = nil;
 
 - (void) setPriority: (NSLayoutPriority)priority
 {
+  if (_priority != priority)
+    {
+      GSInvalidateLayout();
+    }
   _priority = priority;
 }
 
@@ -700,10 +708,58 @@ static NSMapTable *installedContainers = nil;
   [[self contentView] updateConstraintsForSubtreeIfNeeded];
 }
 
+/* A pass that changes a frame (or resizes the window) is followed by
+   another, up to this many in one call, so that one call leaves a settled
+   layout. */
+#define GSMaxLayoutPasses 4
+
 - (void) layoutIfNeeded
 {
-  [self updateConstraintsIfNeeded];
-  [[self contentView] _layoutViewAndSubViews];
+  /* The window whose passes are running.  A pass that resizes the window
+     comes back here; the loop below runs the next pass instead. */
+  static NSWindow *windowInPass = nil;
+  GSAutoLayoutEngine *engine = [self _layoutEngine];
+  NSWindow *outerWindow;
+  NSTimeInterval start;
+  NSUInteger passes = 0;
+
+  if (windowInPass == self)
+    {
+      return;
+    }
+  /* Nothing a pass reads has changed since the last one. */
+  if (engine != nil && [engine isLayoutCurrent])
+    {
+      return;
+    }
+
+  /* --GNU-Debug=GSLayoutTiming logs the time of each call. */
+  start = [NSDate timeIntervalSinceReferenceDate];
+  outerWindow = windowInPass;
+  windowInPass = self;
+  @try
+    {
+      do
+        {
+          NSUInteger generation = GSLayoutGeneration;
+
+          [self updateConstraintsIfNeeded];
+          [[self contentView] _layoutViewAndSubViews];
+          passes++;
+          /* The first pass can create the engine. */
+          engine = [self _layoutEngine];
+          [engine setLayoutGeneration: generation];
+        }
+      while (engine != nil && ![engine isLayoutCurrent] && passes < GSMaxLayoutPasses);
+    }
+  @finally
+    {
+      windowInPass = outerWindow;
+    }
+  NSDebugLLog(@"GSLayoutTiming", @"layout %.1f ms, %lu passes%@, content %@",
+    ([NSDate timeIntervalSinceReferenceDate] - start) * 1000,
+    (unsigned long)passes, ([engine isLayoutCurrent] ? @"" : @" (not settled)"),
+    NSStringFromSize([[self contentView] bounds].size));
 }
 
 - (void) _bootstrapAutoLayout

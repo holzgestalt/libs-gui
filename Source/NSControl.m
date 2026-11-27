@@ -144,6 +144,7 @@ static NSNotificationCenter *nc;
     [NSException raise: NSInvalidArgumentException
 		format: @"attempt to set non-cell object for control cell"];
 
+  [self invalidateIntrinsicContentSize];
   ASSIGN(_cell, aCell);
 }
 
@@ -255,6 +256,7 @@ static NSNotificationCenter *nc;
   BOOL wasEditing = [self abortEditing];
 
   [selected setDoubleValue: aDouble];
+  [self invalidateIntrinsicContentSize];
   if (![selected isKindOfClass: actionCellClass])
     [self setNeedsDisplay: YES];
 
@@ -275,6 +277,7 @@ static NSNotificationCenter *nc;
   BOOL wasEditing = [self abortEditing];
 
   [selected setFloatValue: aFloat];
+  [self invalidateIntrinsicContentSize];
   if (![selected isKindOfClass: actionCellClass])
     [self setNeedsDisplay: YES];
 
@@ -295,6 +298,7 @@ static NSNotificationCenter *nc;
   BOOL wasEditing = [self abortEditing];
 
   [selected setIntValue: anInt];
+  [self invalidateIntrinsicContentSize];
   if (![selected isKindOfClass: actionCellClass])
     [self setNeedsDisplay: YES];
 
@@ -315,6 +319,7 @@ static NSNotificationCenter *nc;
   BOOL wasEditing = [self abortEditing];
 
   [selected setIntegerValue: anInt];
+  [self invalidateIntrinsicContentSize];
   if (![selected isKindOfClass: actionCellClass])
     [self setNeedsDisplay: YES];
 
@@ -335,6 +340,7 @@ static NSNotificationCenter *nc;
   BOOL wasEditing = [self abortEditing];
 
   [selected setStringValue: aString];
+  [self invalidateIntrinsicContentSize];
   if (![selected isKindOfClass: actionCellClass])
     [self setNeedsDisplay: YES];
 
@@ -350,6 +356,7 @@ static NSNotificationCenter *nc;
   BOOL wasEditing = [self abortEditing];
 
   [selected setObjectValue: anObject];
+  [self invalidateIntrinsicContentSize];
   if (![selected isKindOfClass: actionCellClass])
     [self setNeedsDisplay: YES];
 
@@ -470,6 +477,7 @@ static NSNotificationCenter *nc;
       [self abortEditing];
 
       [_cell setAlignment: mode];
+      [self invalidateIntrinsicContentSize];
       if (![_cell isKindOfClass: actionCellClass])
 	[self setNeedsDisplay: YES];
     }
@@ -485,6 +493,7 @@ static NSNotificationCenter *nc;
     {
       NSText *editor = [self currentEditor];
       
+      [self invalidateIntrinsicContentSize];
       [_cell setFont: fontObject];
       if (editor != nil)
 	[editor setFont: fontObject];
@@ -499,6 +508,7 @@ static NSNotificationCenter *nc;
 
   [_cell setFloatingPointFormat: autoRange  left: leftDigits
 	 right: rightDigits];
+  [self invalidateIntrinsicContentSize];
   if (![_cell isKindOfClass: actionCellClass])
     [self setNeedsDisplay: YES];
 }
@@ -508,6 +518,7 @@ static NSNotificationCenter *nc;
   if (_cell)
     {
       [_cell setFormatter: newFormatter];
+      [self invalidateIntrinsicContentSize];
       if (![_cell isKindOfClass: actionCellClass])
 	[self setNeedsDisplay: YES];
     }
@@ -528,6 +539,7 @@ static NSNotificationCenter *nc;
   if (_cell)
     {
       [_cell setBaseWritingDirection: direction];
+      [self invalidateIntrinsicContentSize];
       if (![_cell isKindOfClass: actionCellClass])
 	[self setNeedsDisplay: YES];
     }
@@ -773,6 +785,8 @@ static NSNotificationCenter *nc;
  */
 - (void) updateCell: (NSCell *)aCell
 {
+  /* The cell's size, and so -intrinsicContentSize, may have changed. */
+  [self invalidateIntrinsicContentSize];
   [self setNeedsDisplay: YES];
 }
 
@@ -780,6 +794,7 @@ static NSNotificationCenter *nc;
  */
 - (void) updateCellInside: (NSCell *)aCell
 {
+  [self invalidateIntrinsicContentSize];
   [self setNeedsDisplay: YES];
 }
 
@@ -867,6 +882,7 @@ static NSNotificationCenter *nc;
   [self abortEditing];
 
   [selected setAttributedStringValue: attribStr];
+  [self invalidateIntrinsicContentSize];
   if (![selected isKindOfClass: actionCellClass])
     [self setNeedsDisplay: YES];
 }
