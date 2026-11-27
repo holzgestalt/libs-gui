@@ -9,3 +9,15 @@ Class GSApplicationThemeClass(void)
 {
   return GS_THEME_PROVIDER();
 }
+
+#ifdef _WIN32
+/* libgnustep-gui is a DLL and can't see the executable's symbols, so the
+   entry point is handed to it instead (Source/GSTheme.m). */
+extern void GSRegisterApplicationThemeClass(Class (*entry)(void));
+
+static void __attribute__((constructor))
+GSRegisterThisApplicationTheme(void)
+{
+  GSRegisterApplicationThemeClass(GSApplicationThemeClass);
+}
+#endif

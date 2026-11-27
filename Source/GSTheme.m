@@ -62,8 +62,21 @@
 #import "AppKit/NSBezierPath.h"
 #import "AppKit/PSOperators.h"
 #import "GSThemePrivate.h"
+#ifdef _WIN32
+/* Windows: a DLL can't take a symbol from the executable that loads it, so the
+   application link unit (Themes/ThemeEntry.m) registers its entry point here
+   from a constructor, before main() runs. */
+static Class (*applicationThemeClass)(void) = 0;
+
+APPKIT_EXPORT void
+GSRegisterApplicationThemeClass(Class (*entry)(void))
+{
+  applicationThemeClass = entry;
+}
+#else
 /* Defined by the application link unit. AppKit has no concrete provider. */
 extern Class GSApplicationThemeClass(void) __attribute__((weak));
+#endif
 
 NSString	*GSSwitch = @"GSSwitch";
 NSString        *GSRadio = @"GSRadio";
@@ -429,7 +442,11 @@ typedef	struct {
       null = RETAIN([NSNull null]);
       names = NSCreateMapTable(NSNonOwnedPointerMapKeyCallBacks,
         NSIntMapValueCallBacks, 0);
+#ifdef _WIN32
+      Class provider = applicationThemeClass ? applicationThemeClass() : Nil;
+#else
       Class provider = GSApplicationThemeClass ? GSApplicationThemeClass() : Nil;
+#endif
       if (provider == Nil || provider == [GSTheme class]
         || ![provider isSubclassOfClass: [GSTheme class]])
         [NSException raise: NSInternalInconsistencyException

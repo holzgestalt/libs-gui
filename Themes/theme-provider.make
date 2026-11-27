@@ -29,6 +29,12 @@ ifneq ($(findstring darwin,$(GNUSTEP_TARGET_OS)),)
 GS_THEME_LOAD_START = -Wl,-all_load
 GS_THEME_LOAD_END = -Wl,-noall_load
 GS_THEME_EXPORT = -Wl,-export_dynamic
+else ifneq ($(findstring mingw,$(GNUSTEP_TARGET_OS))$(findstring windows,$(GNUSTEP_TARGET_OS)),)
+# Windows: lld refuses --export-dynamic, and a DLL can't import from the
+# executable anyway; ThemeEntry.m registers the provider with the GUI DLL.
+GS_THEME_LOAD_START = -Wl,--whole-archive
+GS_THEME_LOAD_END = -Wl,--no-whole-archive
+GS_THEME_EXPORT =
 else
 GS_THEME_LOAD_START = -Wl,--whole-archive
 GS_THEME_LOAD_END = -Wl,--no-whole-archive
