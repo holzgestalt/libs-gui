@@ -2754,6 +2754,20 @@ static void autoresize(CGFloat oldContainerSize,
  */
 - (void) displayRect: (NSRect)aRect
 {
+  /* An explicit display draws at once, so the pending layout pass runs first,
+     as -[NSWindow displayIfNeeded] runs it. Otherwise a view that was just
+     added is drawn with the frames from its nib, and corrected only by the
+     next display cycle. */
+  if (GSAutoLayoutEngineExists)
+    {
+      NSWindow *window = [self window];
+
+      /* A call during a layout pass returns at once. */
+      if (window != nil && [window _layoutEngine] != nil)
+        {
+          [window layoutIfNeeded];
+        }
+    }
   if ([self isOpaque] == YES)
     {
       [self displayRectIgnoringOpacity: aRect];
